@@ -1,0 +1,22 @@
+{
+  "name": "montre",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Application d'entrainement sportif : suivi social facon Strava + coaching adaptatif facon Decathlon Coach, connectee a la montre GPS Decathlon Fit 100 S.",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "build": "npm run build -w @montre/core && npm run build -w @montre/server && npm run build -w @montre/web",
+    "dev": "node scripts/dev.mjs",
+    "dev:server": "npm run dev -w @montre/server",
+    "dev:web": "npm run dev -w @montre/web",
+    "test": "npm run test -w @montre/core",
+    "typecheck": "npm run typecheck -w @montre/core && npm run typecheck -w @montre/server && npm run typecheck -w @montre/web"
+  }
+}
