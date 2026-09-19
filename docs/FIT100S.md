@@ -23,7 +23,9 @@ techniquement accessible sans rétro-ingénierie est exploité.
 
 ## Profils lus en direct
 
-Implémentation : `apps/web/src/device/fit100s.ts`.
+Connexion et découverte : `apps/web/src/device/fit100s.ts`. Le décodage des trames vit dans
+`packages/core/src/ble.ts`, où il est couvert par des tests — c'est la partie où une erreur
+d'un octet donnerait une fréquence cardiaque fausse sans que rien ne le signale.
 
 ### Heart Rate — service `0x180D`
 
@@ -101,13 +103,50 @@ cardiaques manquent sur la portion concernée.
 | --- | --- |
 | Chrome, Edge, Opera (Windows, macOS, Linux, Android) | oui |
 | Firefox | non |
-| Safari, tout navigateur sur iOS | non |
+| Safari, Chrome, Firefox sur iOS | non |
+| Bluefy sur iOS | oui |
 
 Le contexte doit être sécurisé : HTTPS, ou `localhost` en développement.
 
-Quand Web Bluetooth est indisponible, `bluetoothUnavailableReason()` renvoie la raison exacte
-(navigateur, plateforme ou absence de HTTPS) et l'interface la présente avec la solution de
-repli, plutôt que de laisser un bouton qui ne fonctionne pas.
+### Le cas iOS
+
+Sur iPhone et iPad, tous les navigateurs sont obligés d'utiliser WebKit, et WebKit n'implémente
+pas Web Bluetooth. Changer de navigateur ne change donc rien — sauf pour une catégorie
+d'applications qui n'utilisent pas le moteur web d'Apple pour cette partie et implémentent
+Web Bluetooth par-dessus CoreBluetooth. **Bluefy – Web BLE Browser** est la plus connue.
+
+L'écran `/montre` détecte iOS et affiche la marche à suivre : installer Bluefy, copier
+l'adresse de la page (avec un bouton, parce que retaper une URL sur un téléphone est
+pénible), l'ouvrir dans Bluefy. Une fois dedans, `navigator.bluetooth` existe et le reste du
+code fonctionne sans aucune adaptation.
+
+`bluetoothEnvironment()` renvoie la cause exacte de l'indisponibilité — plateforme,
+navigateur ou absence de HTTPS — et la solution correspondante, plutôt que de laisser un
+bouton qui ne répond pas.
+
+## Réussir l'appairage
+
+Trois causes expliquent la quasi-totalité des échecs, et l'écran `/montre` les traite une par une.
+
+**La montre n'émet pas.** Beaucoup de montres ne diffusent leur fréquence cardiaque qu'une
+fois une activité démarrée, pour économiser la batterie. Lancer une séance sur la montre
+avant de chercher résout le cas le plus fréquent de « connectée mais aucune valeur ».
+
+**Une autre application tient la montre.** Le Bluetooth Low Energy n'autorise qu'une seule
+connexion centrale à la fois : si l'application Decathlon Coach est connectée, la nôtre ne
+peut pas l'être. Il faut la fermer, et parfois oublier la montre dans les réglages Bluetooth
+du système.
+
+**Le filtre de recherche est trop strict.** `requestDevice()` n'affiche que les appareils
+correspondant aux filtres, et toutes les montres n'annoncent ni leur nom ni leurs services
+dans leur trame de découverte. Une montre parfaitement compatible peut donc rester
+invisible. D'où le bouton « Afficher tous les appareils Bluetooth », qui relance la recherche
+avec `acceptAllDevices: true` — sans filtre, la montre apparaît, et les services sont
+découverts après connexion.
+
+Après connexion, l'écran affiche **quels profils la montre expose réellement** (cardio,
+cadence, batterie, identification) et les valeurs en direct. C'est le seul diagnostic qui
+vaille : si la fréquence cardiaque défile, ça marche.
 
 ## Import de fichier
 

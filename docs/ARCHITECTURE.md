@@ -24,6 +24,7 @@ l'interface est calculée exactement comme celle stockée en base.
 | `training-load.ts` | Séries CTL / ATL / TSB, lecture de l'état de forme, ratio charge aiguë sur chronique, agrégation hebdomadaire. |
 | `workouts.ts` | Catalogue de séances : endurance, récupération, sortie longue, fractionné court et long, seuil, côtes, renforcement. Chaque séance est paramétrée par la VMA. |
 | `coach.ts` | Génération de plan périodisé, recommandation quotidienne adaptative, analyse post-séance. |
+| `ble.ts` | Décodage des trames Bluetooth standards (cardio, allure/cadence, batterie). Fonctions pures, donc testables sans montre ni navigateur. |
 | `serialize.ts` | Écriture TCX et GPX, pour l'export et le dépôt sur Strava. |
 | `parsers/` | Décodage FIT binaire, GPX, TCX, plus la normalisation en activité complète. |
 
@@ -63,8 +64,12 @@ centaine de lignes.
 
 React et Vite, trois dépendances de production (`react`, `react-dom`, `react-router-dom`).
 
-- `device/fit100s.ts` — Web Bluetooth : découverte, abonnement aux profils standards,
-  décodage des trames, reconnexion automatique. Détaillé dans [`FIT100S.md`](FIT100S.md).
+- `device/fit100s.ts` — Web Bluetooth : diagnostic de plateforme, découverte (filtrée puis
+  élargie), abonnement aux profils standards, reconnexion automatique. Le décodage des trames
+  est dans `core/ble.ts` pour être testable. Détaillé dans [`FIT100S.md`](FIT100S.md).
+- `pages/Watch.tsx` — appairage guidé : vérifications préalables, recherche, test en direct
+  et dépannage. La connexion Bluetooth est une instance partagée de l'application, pas une
+  instance par écran : la montre reste connectée quand on change de page.
 - `device/recorder.ts` — fusion à 1 Hz du GPS, des mesures Bluetooth et de l'horloge.
   Les positions imprécises (plus de 35 m) et les sauts GPS (plus de 12 m/s) sont écartés,
   sans quoi la distance dérive en ville. L'état est écrit dans le stockage local à chaque

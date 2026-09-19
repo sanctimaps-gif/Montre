@@ -79,9 +79,19 @@ L'écran **Séance** combine ces mesures avec le GPS du téléphone et tient le 
 automatiques au kilomètre et la reprise après coupure. La reconnexion est automatique quand
 la montre sort de portée.
 
+L'écran **Montre** guide l'appairage : vérifications préalables, recherche filtrée puis
+recherche élargie si la montre n'apparaît pas, et test en direct qui affiche les valeurs
+reçues et les profils réellement exposés par l'appareil.
+
 Web Bluetooth fonctionne sur Chrome, Edge et Opera (ordinateur et Android), en HTTPS ou sur
-`localhost`. Firefox et iOS ne le prennent pas en charge : sur ces plateformes, l'import de
-fichier reste disponible et l'application le dit clairement plutôt que d'échouer en silence.
+`localhost`. Firefox ne le prend pas en charge.
+
+**Sur iPhone et iPad**, aucun navigateur du système ne l'expose — Safari, Chrome et Firefox
+reposent tous sur WebKit, qui ne l'implémente pas. Il faut passer par un navigateur tiers qui
+implémente Web Bluetooth par-dessus CoreBluetooth, comme **Bluefy** : l'application détecte
+iOS et donne la marche à suivre, avec un bouton pour copier l'adresse de la page. Sans
+Bluetooth, l'import de fichier reste disponible et l'application le dit clairement plutôt que
+d'échouer en silence.
 
 ### 2. Historique — import de fichier
 

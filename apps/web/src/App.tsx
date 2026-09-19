@@ -8,6 +8,7 @@ import { Record } from "./pages/Record.tsx";
 import { Coach } from "./pages/Coach.tsx";
 import { Feed } from "./pages/Feed.tsx";
 import { Settings } from "./pages/Settings.tsx";
+import { Watch } from "./pages/Watch.tsx";
 
 export function App() {
   return (
@@ -32,6 +33,7 @@ function Shell() {
         </div>
         <Item to="/" icon="📊" label="Accueil" />
         <Item to="/seance" icon="⏱️" label="Seance" />
+        <Item to="/montre" icon="⌚" label="Montre" />
         <Item to="/activites" icon="📁" label="Activites" />
         <Item to="/coach" icon="🎯" label="Coach" />
         <Item to="/flux" icon="👥" label="Flux" />
@@ -45,6 +47,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/seance" element={<Record />} />
+          <Route path="/montre" element={<Watch />} />
           <Route path="/activites" element={<Activities />} />
           <Route path="/activites/:id" element={<ActivityDetail />} />
           <Route path="/coach" element={<Coach />} />

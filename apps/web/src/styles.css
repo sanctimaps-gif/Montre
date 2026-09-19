@@ -633,11 +633,14 @@ th {
     display: none;
   }
 
+  /* Sept entrees doivent tenir sur la largeur d'un telephone. */
   .nav a {
     flex-direction: column;
     gap: 2px;
-    font-size: 11px;
-    padding: 6px 8px;
+    font-size: 10px;
+    padding: 6px 2px;
+    min-width: 0;
+    text-align: center;
   }
 
   .nav a.actif {

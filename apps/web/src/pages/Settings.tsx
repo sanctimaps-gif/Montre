@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import type { AthleteProfile } from "@montre/core";
 import { computeHrZones, estimateMaxHr, trainingPaces } from "@montre/core";
 import type { DeviceRecord, StravaStatus } from "../api.ts";
@@ -355,6 +355,9 @@ export function Settings() {
           <button className="bleu" onClick={pairWatch} disabled={pairing}>
             {pairing ? "Recherche..." : "Appairer une montre"}
           </button>
+          <Link to="/montre" className="bouton">
+            Appairage guide et diagnostic
+          </Link>
         </div>
 
         <div className="separateur" />
@@ -386,7 +389,11 @@ export function Settings() {
         </p>
         {!isBluetoothSupported() && (
           <div className="message alerte" style={{ marginTop: 12 }}>
-            {bluetoothUnavailableReason()}
+            {bluetoothUnavailableReason()}{" "}
+            <Link to="/montre" style={{ textDecoration: "underline" }}>
+              Voir la marche a suivre
+            </Link>
+            .
           </div>
         )}
       </div>

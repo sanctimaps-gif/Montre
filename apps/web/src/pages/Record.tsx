@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { computeHrZones, hrToZone } from "@montre/core";
 import { api } from "../api.ts";
 import type { SessionAnalysis } from "../api.ts";
@@ -241,9 +241,15 @@ export function Record() {
                 Deconnecter
               </button>
             ) : (
-              <button className="bleu" onClick={connect}>
-                Connecter la Fit 100 S
-              </button>
+              <>
+                <button className="bleu" onClick={connect}>
+                  Connecter la montre
+                </button>
+                {/* L'appairage guide et le diagnostic vivent sur leur propre ecran. */}
+                <Link to="/montre" className="bouton discret">
+                  Aide a la connexion
+                </Link>
+              </>
             )}
           </div>
         </div>
@@ -356,7 +362,11 @@ export function Record() {
       {!isBluetoothSupported() && (
         <div className="message info">
           <strong>Bluetooth indisponible ici.</strong> {bluetoothUnavailableReason()} Le
-          chrono, le GPS et l'import de fichiers restent utilisables.
+          chrono, le GPS et l'import de fichiers restent utilisables.{" "}
+          <Link to="/montre" style={{ textDecoration: "underline" }}>
+            Voir la marche a suivre
+          </Link>
+          .
         </div>
       )}
     </>
