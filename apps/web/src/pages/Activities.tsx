@@ -109,10 +109,16 @@ export function Activities() {
 
       {message && <div className={`message ${message.type}`}>{message.text}</div>}
 
+      {/*
+        Volontairement sans attribut `accept` : iOS fait correspondre les
+        extensions a ses propres types de fichiers, et comme il ne connait ni
+        .fit ni .tcx, il grise ces fichiers dans le selecteur — rendant l'import
+        impossible depuis un iPhone. Le format est de toute facon reconnu au
+        contenu, pas au nom, et un fichier invalide est refuse avec un message.
+      */}
       <input
         ref={fileInput}
         type="file"
-        accept=".fit,.gpx,.tcx"
         multiple
         style={{ display: "none" }}
         onChange={(e) => {
@@ -134,8 +140,16 @@ export function Activities() {
           void importFiles(e.dataTransfer.files);
         }}
       >
-        Depose ici tes fichiers <strong>.fit</strong>, <strong>.gpx</strong> ou{" "}
+        Depose ou choisis tes fichiers <strong>.fit</strong>, <strong>.gpx</strong> ou{" "}
         <strong>.tcx</strong> exportes de Decathlon Coach, de ta montre ou de Strava.
+        <div className="aide" style={{ marginTop: 8 }}>
+          Sur telephone, les fichiers exportes depuis Decathlon Coach se retrouvent dans
+          l'application Fichiers.{" "}
+          <Link to="/montre" style={{ textDecoration: "underline" }}>
+            Voir la marche a suivre
+          </Link>
+          .
+        </div>
       </div>
 
       <div className="carte" style={{ marginTop: 16 }}>

@@ -22,3 +22,17 @@ createRoot(container).render(
     </Router>
   </StrictMode>,
 );
+
+/**
+ * Le service worker n'a de sens que pour la version autonome, installable et
+ * utilisable hors ligne. En developpement, il masquerait les modifications
+ * derriere son cache.
+ */
+if (STANDALONE && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    // Le chemin est relatif : l'application peut vivre dans un sous-dossier.
+    navigator.serviceWorker.register("./sw.js").catch(() => {
+      // Hors contexte securise ou refuse par l'utilisateur : sans consequence.
+    });
+  });
+}

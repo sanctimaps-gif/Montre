@@ -29,6 +29,10 @@ immédiatement les courbes et l'analyse.
 Ce qui demande le serveur : les comptes, le partage entre athlètes, et la synchronisation
 Strava — qui exige un secret client, lequel n'a pas sa place dans une page web.
 
+L'application est **installable** : « Ajouter à l'écran d'accueil » sur iPhone, « Installer »
+sur Chrome. Elle s'ouvre alors en plein écran, et un service worker la rend utilisable **hors
+ligne** — utile au départ d'un trail, là où il n'y a pas de réseau.
+
 Reconstruire cette version : `npm run build:site` (sortie dans `index.html` et `assets/`
 à la racine, d'où GitHub Pages la sert).
 
@@ -87,11 +91,11 @@ Web Bluetooth fonctionne sur Chrome, Edge et Opera (ordinateur et Android), en H
 `localhost`. Firefox ne le prend pas en charge.
 
 **Sur iPhone et iPad**, aucun navigateur du système ne l'expose — Safari, Chrome et Firefox
-reposent tous sur WebKit, qui ne l'implémente pas. Il faut passer par un navigateur tiers qui
-implémente Web Bluetooth par-dessus CoreBluetooth, comme **Bluefy** : l'application détecte
-iOS et donne la marche à suivre, avec un bouton pour copier l'adresse de la page. Sans
-Bluetooth, l'import de fichier reste disponible et l'application le dit clairement plutôt que
-d'échouer en silence.
+reposent tous sur WebKit, qui ne l'implémente pas, et aucun code côté application ne peut
+contourner cela. L'écran Montre détecte iOS et propose quatre chemins classés par simplicité :
+Chrome sur un autre appareil, l'export depuis Decathlon Coach (le plus pratique, sans rien
+installer), l'enregistrement avec le téléphone seul, et enfin Bluefy si le direct est
+indispensable. Le détail est dans [`docs/FIT100S.md`](docs/FIT100S.md).
 
 ### 2. Historique — import de fichier
 

@@ -134,48 +134,134 @@ export function Watch() {
       {detail && <div className="message alerte">{detail}</div>}
 
       {!environment.available ? (
-        <div className="carte accent">
-          <h2>Ce navigateur ne peut pas parler a la montre</h2>
-          <p>{environment.message}</p>
-          {environment.remedy && <p className="sous-titre">{environment.remedy}</p>}
+        <>
+          <div className="carte accent">
+            <h2>Ce navigateur ne peut pas parler au Bluetooth</h2>
+            <p>{environment.message}</p>
+            {environment.kind === "ios" && (
+              <p className="sous-titre">
+                Aucun reglage ni astuce ne change cela : c'est une limite du systeme, pas de
+                l'application. Voici les quatre chemins qui fonctionnent, du plus simple au
+                plus technique.
+              </p>
+            )}
+          </div>
+
+          <Option
+            numero={1}
+            titre="Sur un ordinateur ou un telephone Android"
+            resume="Le direct, sans rien installer"
+          >
+            <p>
+              Ouvre cette meme adresse dans <strong>Chrome</strong>, Edge ou Opera. La
+              connexion Bluetooth y fonctionne nativement : tu vois ta frequence cardiaque
+              defiler et tu peux enregistrer tes seances en direct.
+            </p>
+            <div className="actions">
+              <button className="primaire" onClick={copyLink}>
+                {copied ? "Adresse copiee" : "Copier l'adresse de la page"}
+              </button>
+            </div>
+          </Option>
+
+          <Option
+            numero={2}
+            titre="Depuis l'application Decathlon Coach"
+            resume="Recommande sur iPhone — toutes les analyses, sans Bluetooth"
+          >
+            <p>
+              Ta montre se synchronise deja avec Decathlon Coach sur ton iPhone, par le
+              Bluetooth du systeme. Il suffit ensuite d'en sortir tes seances : le fichier
+              contient tout, trace GPS, cardio, cadence et tours.
+            </p>
+            <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
+              <li>Synchronise ta montre avec Decathlon Coach, comme d'habitude.</li>
+              <li>
+                Ouvre la seance dans Decathlon Coach, puis cherche{" "}
+                <strong>Partager</strong> ou <strong>Exporter</strong> — selon les versions,
+                dans le menu « … » en haut de la seance.
+              </li>
+              <li>
+                Choisis un export <strong>GPX</strong>, <strong>TCX</strong> ou{" "}
+                <strong>FIT</strong>, puis <strong>Enregistrer dans Fichiers</strong>.
+              </li>
+              <li>
+                Reviens ici, va dans{" "}
+                <Link to="/activites" style={{ textDecoration: "underline" }}>
+                  Activites
+                </Link>{" "}
+                et appuie sur « Importer un fichier ». Selectionne le fichier depuis
+                l'application Fichiers.
+              </li>
+            </ol>
+            <p className="aide">
+              Tu obtiens exactement les memes analyses qu'avec le direct — zones cardiaques,
+              charge, derive, records, coaching. La seule chose que tu perds est l'affichage
+              pendant l'effort.
+            </p>
+            <div className="actions">
+              <Link to="/activites" className="bouton primaire">
+                Aller importer une seance
+              </Link>
+            </div>
+          </Option>
+
+          <Option
+            numero={3}
+            titre="Enregistrer avec le telephone seul"
+            resume="Sans la montre, et sans rien installer"
+          >
+            <p>
+              L'ecran{" "}
+              <Link to="/seance" style={{ textDecoration: "underline" }}>
+                Seance
+              </Link>{" "}
+              enregistre le chrono, le GPS, la distance, l'allure, le denivele et les tours
+              automatiques avec le seul telephone. Il ne manque que la frequence cardiaque,
+              qui vient du capteur de la montre.
+            </p>
+            <p className="aide">
+              Garde l'ecran allume ou le telephone en poche : iOS suspend les pages en
+              arriere-plan, mais le chrono se rattrape sur l'horloge a chaque retour, sans
+              perdre de temps.
+            </p>
+          </Option>
 
           {environment.kind === "ios" && (
-            <>
-              <div className="separateur" />
-              <h3>Marche a suivre sur iPhone</h3>
-              <ol style={{ paddingLeft: 20, lineHeight: 1.8 }}>
-                <li>
-                  Installe <strong>Bluefy – Web BLE Browser</strong> depuis l'App Store. C'est
-                  un navigateur qui implemente Web Bluetooth par-dessus le Bluetooth d'iOS,
-                  ce que Safari ne fait pas.
-                </li>
-                <li>Copie l'adresse de cette page avec le bouton ci-dessous.</li>
-                <li>Ouvre Bluefy, colle l'adresse, et reviens sur cet ecran.</li>
-                <li>Appuie sur « Rechercher ma montre ». Le reste est identique.</li>
-              </ol>
+            <Option
+              numero={4}
+              titre="Bluefy, pour avoir quand meme le direct sur iPhone"
+              resume="Un navigateur tiers a installer"
+            >
+              <p>
+                <strong>Bluefy – Web BLE Browser</strong>, sur l'App Store, est un navigateur
+                qui implemente Web Bluetooth par-dessus le Bluetooth d'iOS — ce que Safari ne
+                fait pas. Copie l'adresse de cette page, ouvre-la dans Bluefy, et la
+                recherche de montre fonctionne comme sur un ordinateur.
+              </p>
               <div className="actions">
-                <button className="primaire" onClick={copyLink}>
+                <button onClick={copyLink}>
                   {copied ? "Adresse copiee" : "Copier l'adresse de la page"}
                 </button>
               </div>
-              <p className="aide" style={{ marginTop: 12 }}>
-                Sur ordinateur ou sur Android, Chrome, Edge et Opera fonctionnent
-                directement, sans rien installer.
+              <p className="aide">
+                C'est la seule facon d'avoir le cardio en direct sur un iPhone. Si tu n'y
+                tiens pas, l'option 2 te donne toutes les analyses sans rien installer.
               </p>
-            </>
+            </Option>
           )}
 
-          <div className="separateur" />
-          <p className="aide">
-            Sans Bluetooth, l'application reste pleinement utilisable : exporte tes seances
-            depuis Decathlon Coach en <strong>.fit</strong>, <strong>.gpx</strong> ou{" "}
-            <strong>.tcx</strong> et depose-les dans{" "}
-            <Link to="/activites" style={{ textDecoration: "underline" }}>
-              Activites
-            </Link>
-            . Tu auras les memes analyses, simplement pas le direct.
-          </p>
-        </div>
+          <div className="carte">
+            <h3>Et automatiquement, sans rien faire ?</h3>
+            <p className="aide">
+              Decathlon Coach sait envoyer tes seances vers Strava, et cette application sait
+              les recuperer depuis Strava. La chaine montre → Decathlon Coach → Strava →
+              Montre est entierement automatique. Elle demande en revanche de faire tourner
+              le serveur de l'application : l'acces a l'API Strava exige un secret qui ne peut
+              pas vivre dans une page web.
+            </p>
+          </div>
+        </>
       ) : (
         <>
           <div className="carte accent">
@@ -386,6 +472,48 @@ export function Watch() {
         </p>
       </div>
     </>
+  );
+}
+
+/** Une solution proposee, numerotee par ordre de simplicite. */
+function Option({
+  numero,
+  titre,
+  resume,
+  children,
+}: {
+  numero: number;
+  titre: string;
+  resume: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="carte">
+      <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
+        <span
+          style={{
+            flexShrink: 0,
+            width: 32,
+            height: 32,
+            borderRadius: 10,
+            display: "grid",
+            placeItems: "center",
+            background: "var(--surface-haute)",
+            border: "1px solid var(--bordure)",
+            fontWeight: 700,
+          }}
+        >
+          {numero}
+        </span>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ marginBottom: 2 }}>{titre}</h2>
+          <p className="sous-titre" style={{ marginBottom: 12 }}>
+            {resume}
+          </p>
+          {children}
+        </div>
+      </div>
+    </div>
   );
 }
 

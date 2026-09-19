@@ -99,6 +99,14 @@ le même code dans les deux variantes.
 - Le routage passe par le fragment d'URL, et les chemins des ressources sont relatifs :
   la même construction fonctionne à la racine d'un domaine comme dans un sous-dossier, et
   un lien profond reste rechargeable sans réécriture d'URL côté serveur.
+- Un manifeste et un service worker rendent l'application installable et utilisable hors
+  ligne. Le service worker sert la page depuis le réseau en priorité — pour qu'une nouvelle
+  version soit prise en compte dès qu'il y a du réseau — et les ressources versionnées
+  depuis le cache, puisque leur contenu ne change jamais pour un nom donné. Il n'est
+  enregistré qu'en mode autonome : en développement, il masquerait les modifications.
+- Les icônes sont **dessinées** par `scripts/make-icons.mjs`, qui encode les PNG avec le
+  `zlib` de Node. Le dépôt ne porte donc pas d'images binaires que personne ne saurait
+  regénérer.
 
 ## Tests
 

@@ -83,6 +83,14 @@ export class SessionRecorder {
   private lapStartDistance = 0;
   private lapStartTime = 0;
   private lapHrSamples: number[] = [];
+  /**
+   * Horodatage du dernier point ajoute. Le chrono se calcule a partir de
+   * l'horloge et non du nombre de battements : les navigateurs ralentissent ou
+   * suspendent les minuteries quand l'onglet passe en arriere-plan ou que
+   * l'ecran se verrouille, ce qui ferait perdre des minutes entieres a une
+   * sortie enregistree telephone en poche.
+   */
+  private lastTickAt = 0;
 
   getState(): RecorderState {
     return this.state;
@@ -206,20 +214,34 @@ export class SessionRecorder {
 
   private startTicker(): void {
     if (this.ticker) return;
+    this.lastTickAt = Date.now();
     // Un point par seconde, comme la montre elle-meme.
     this.ticker = setInterval(() => this.tick(), 1000);
+    // Au retour au premier plan, le chrono se remet a jour immediatement
+    // plutot qu'a la prochaine seconde.
+    document.addEventListener("visibilitychange", this.handleVisibility);
   }
 
   private stopTicker(): void {
     if (this.ticker) clearInterval(this.ticker);
     this.ticker = null;
+    this.lastTickAt = 0;
+    document.removeEventListener("visibilitychange", this.handleVisibility);
   }
+
+  private handleVisibility = (): void => {
+    if (!document.hidden) this.tick();
+  };
 
   /** Ajoute le point de la seconde ecoulee a partir des sources disponibles. */
   private tick(): void {
     if (this.state.status !== "enregistrement") return;
 
     const now = Date.now();
+    // Duree reellement ecoulee depuis le dernier point, pas une seconde supposee.
+    const delta = this.lastTickAt > 0 ? (now - this.lastTickAt) / 1000 : 1;
+    this.lastTickAt = now;
+
     const point: RecordedPoint = {
       t: now,
       lat: this.state.lastFix?.lat,
@@ -236,7 +258,7 @@ export class SessionRecorder {
 
     this.state = {
       ...this.state,
-      elapsed: this.state.elapsed + 1,
+      elapsed: this.state.elapsed + delta,
       points: [...this.state.points, point],
     };
 

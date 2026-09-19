@@ -10,7 +10,7 @@
  * profonds puisqu'aucun serveur ne peut reecrire les URL.
  */
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -31,8 +31,9 @@ function run(command, args, env = {}) {
   }
 }
 
-console.log("1/3  Compilation du coeur metier");
+console.log("1/3  Compilation du coeur metier et des icones");
 run("npm", ["run", "build", "-w", "@montre/core"]);
+run("node", ["scripts/make-icons.mjs"]);
 
 console.log("2/3  Construction de l'application en mode autonome");
 run("npm", ["run", "build", "-w", "@montre/web"], {
@@ -41,10 +42,19 @@ run("npm", ["run", "build", "-w", "@montre/web"], {
 });
 
 console.log("3/3  Publication a la racine du depot");
+// Le dossier des ressources est reconstruit a neuf : les fichiers portent une
+// empreinte dans leur nom, sans quoi les anciennes versions s'accumuleraient.
 rmSync(siteAssets, { recursive: true, force: true });
 mkdirSync(siteAssets, { recursive: true });
-cpSync(resolve(distDir, "assets"), siteAssets, { recursive: true });
-cpSync(resolve(distDir, "index.html"), resolve(root, "index.html"));
+
+// Tout ce que produit la construction est publie : la page, les ressources,
+// mais aussi le manifeste, le service worker et les icones venus de public/.
+for (const entry of readdirSync(distDir, { withFileTypes: true })) {
+  cpSync(resolve(distDir, entry.name), resolve(root, entry.name), {
+    recursive: entry.isDirectory(),
+  });
+  console.log(`     ${entry.name}`);
+}
 
 // Sans ce fichier, GitHub Pages ferait passer la sortie par Jekyll, qui
 // ignore les fichiers commencant par un tiret bas et n'a rien a faire ici.

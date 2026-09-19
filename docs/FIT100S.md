@@ -110,19 +110,41 @@ Le contexte doit être sécurisé : HTTPS, ou `localhost` en développement.
 
 ### Le cas iOS
 
-Sur iPhone et iPad, tous les navigateurs sont obligés d'utiliser WebKit, et WebKit n'implémente
-pas Web Bluetooth. Changer de navigateur ne change donc rien — sauf pour une catégorie
-d'applications qui n'utilisent pas le moteur web d'Apple pour cette partie et implémentent
-Web Bluetooth par-dessus CoreBluetooth. **Bluefy – Web BLE Browser** est la plus connue.
+Sur iPhone et iPad, tous les navigateurs sont obligés d'utiliser WebKit, et WebKit
+n'implémente pas Web Bluetooth. Changer Safari pour Chrome ou Firefox ne change donc rien :
+ce sont les mêmes entrailles. **Aucun code côté application ne peut contourner cela** — une
+page web n'accède pas à la radio Bluetooth sans passer par du natif.
 
-L'écran `/montre` détecte iOS et affiche la marche à suivre : installer Bluefy, copier
-l'adresse de la page (avec un bouton, parce que retaper une URL sur un téléphone est
-pénible), l'ouvrir dans Bluefy. Une fois dedans, `navigator.bluetooth` existe et le reste du
-code fonctionne sans aucune adaptation.
+L'écran `/montre` détecte iOS et propose quatre chemins, classés par simplicité plutôt que
+par élégance technique :
+
+1. **Un ordinateur ou un Android avec Chrome.** Rien à installer, le direct fonctionne.
+2. **L'export depuis Decathlon Coach**, recommandé sur iPhone. La montre se synchronise
+   déjà avec Decathlon Coach via le Bluetooth du système ; il suffit d'en sortir un fichier
+   et de l'importer ici. On obtient exactement les mêmes analyses — seul l'affichage
+   pendant l'effort manque.
+3. **L'enregistrement avec le téléphone seul.** GPS, chrono, distance, allure, dénivelé et
+   tours automatiques sans aucune montre ; il ne manque que la fréquence cardiaque.
+4. **Bluefy – Web BLE Browser**, un navigateur de l'App Store qui implémente Web Bluetooth
+   par-dessus CoreBluetooth. C'est la seule façon d'avoir le direct sur iPhone, mais elle
+   arrive en dernier : elle demande d'installer une application pour un gain que l'option 2
+   couvre presque entièrement.
+
+Il existe aussi un chemin entièrement automatique : Decathlon Coach sait envoyer les séances
+vers Strava, et l'application sait les récupérer depuis Strava. Il demande en revanche de
+faire tourner le serveur, l'API Strava exigeant un secret client.
 
 `bluetoothEnvironment()` renvoie la cause exacte de l'indisponibilité — plateforme,
-navigateur ou absence de HTTPS — et la solution correspondante, plutôt que de laisser un
-bouton qui ne répond pas.
+navigateur ou absence de HTTPS — plutôt que de laisser un bouton qui ne répond pas.
+
+### Un piège qui bloquait l'import sur iPhone
+
+Le champ de fichier portait `accept=".fit,.gpx,.tcx"`. iOS fait correspondre les extensions
+à ses propres types de fichiers, et comme il ne connaît ni `.fit` ni `.tcx`, il **grisait ces
+fichiers dans le sélecteur** : le chemin de repli était inutilisable là où il était le plus
+nécessaire. L'attribut a été retiré. Le format est de toute façon reconnu au contenu — les
+octets de signature pour le FIT, la racine du document pour le GPX et le TCX — et un fichier
+invalide est refusé avec un message explicite.
 
 ## Réussir l'appairage
 
