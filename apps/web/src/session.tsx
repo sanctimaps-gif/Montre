@@ -3,6 +3,9 @@ import type { ReactNode } from "react";
 import type { AthleteProfile, User } from "@montre/core";
 import { ApiError, api, getToken, setToken } from "./api.ts";
 
+/** Recharge les donnees de session apres un changement venu d'ailleurs. */
+export type SessionReloader = () => Promise<void>;
+
 /** Session courante : utilisateur connecte et profil sportif. */
 interface SessionValue {
   user: User | null;
@@ -22,7 +25,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    if (!getToken()) {
+    // En mode autonome il n'y a pas de comptes : l'athlete local existe
+    // toujours, on entre directement dans l'application.
+    if (api.requiresAuth && !getToken()) {
       setLoading(false);
       return;
     }
@@ -66,12 +71,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           await api.logout();
         } finally {
           setToken(null);
-          setUser(null);
-          setProfile(null);
+          // Sans comptes, il n'y a rien a quitter : on reste dans l'application.
+          if (api.requiresAuth) {
+            setUser(null);
+            setProfile(null);
+          }
         }
       },
       refreshProfile: async () => {
         const me = await api.me();
+        // Le nom affiche peut changer en meme temps que le profil sportif.
+        setUser(me.user);
         setProfile(me.profile);
       },
     }),

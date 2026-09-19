@@ -308,6 +308,16 @@ export class SessionRecorder {
   }
 }
 
+/**
+ * Enregistreur unique de l'application.
+ *
+ * Il doit survivre au demontage de l'ecran Seance : on consulte volontiers son
+ * plan ou une activite passee en pleine sortie, et l'enregistrement ne doit ni
+ * s'arreter ni, pire, se dedoubler au retour. Une instance partagee garantit
+ * qu'un seul chronometre alimente une seule trace.
+ */
+export const sessionRecorder = new SessionRecorder();
+
 /** Allure instantanee lissee sur les dernieres secondes, en s/km. */
 export function currentPace(points: RecordedPoint[], window = 30): number | null {
   if (points.length < 2) return null;

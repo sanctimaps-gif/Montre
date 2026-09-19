@@ -11,6 +11,27 @@ montre **Decathlon Fit 100 S** :
 Tout tourne sur ton serveur : aucune donnée ne part ailleurs tant que tu ne connectes pas
 explicitement un service tiers.
 
+## Essayer en ligne
+
+**→ [sanctimaps-gif.github.io/Montre](https://sanctimaps-gif.github.io/Montre/)**
+
+Cette adresse sert la **version autonome** : l'application entière tourne dans le
+navigateur, sans serveur. La logique est exactement la même — c'est le paquet
+`@montre/core` qui calcule les métriques, la charge et les séances, comme côté serveur —
+seul le stockage change : tes activités restent dans ce navigateur, sur cet appareil, via
+IndexedDB.
+
+Ce qui fonctionne : import de fichiers `.fit`/`.gpx`/`.tcx`, connexion Bluetooth à la
+montre, enregistrement de séance, analyses, plans, export GPX/TCX. Un bouton charge cinq
+semaines de séances de démonstration, clairement étiquetées comme telles, pour voir
+immédiatement les courbes et l'analyse.
+
+Ce qui demande le serveur : les comptes, le partage entre athlètes, et la synchronisation
+Strava — qui exige un secret client, lequel n'a pas sa place dans une page web.
+
+Reconstruire cette version : `npm run build:site` (sortie dans `index.html` et `assets/`
+à la racine, d'où GitHub Pages la sert).
+
 ## Démarrage
 
 ```bash

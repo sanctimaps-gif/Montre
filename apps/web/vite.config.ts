@@ -3,6 +3,9 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
+  // La version autonome est servie depuis un sous-chemin (GitHub Pages) :
+  // les URL des ressources doivent en tenir compte.
+  base: process.env["VITE_BASE"] ?? "/",
   server: {
     port: 5173,
     // L'API tourne sur un autre port : le proxy evite toute question de CORS
@@ -16,6 +19,8 @@ export default defineConfig({
   },
   build: {
     outDir: "dist",
-    sourcemap: true,
+    // La version publiee est versionnee dans le depot : pas de carte de
+    // sources d'un megaoctet a y faire entrer.
+    sourcemap: process.env["VITE_STANDALONE"] !== "1",
   },
 });

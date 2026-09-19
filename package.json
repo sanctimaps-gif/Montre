@@ -13,6 +13,7 @@
   },
   "scripts": {
     "build": "npm run build -w @montre/core && npm run build -w @montre/server && npm run build -w @montre/web",
+    "build:site": "node scripts/build-site.mjs",
     "dev": "node scripts/dev.mjs",
     "dev:server": "npm run dev -w @montre/server",
     "dev:web": "npm run dev -w @montre/web",

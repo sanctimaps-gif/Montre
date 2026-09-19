@@ -143,6 +143,20 @@ export class Fit100SConnection {
     this.handleDisconnection = this.handleDisconnection.bind(this);
   }
 
+  /**
+   * Rebranche les callbacks sur l'interface courante. La connexion survit au
+   * demontage de l'ecran Seance ; a son retour, c'est un nouveau composant qui
+   * doit recevoir les mesures.
+   */
+  setEvents(events: WatchEvents): void {
+    this.events = events;
+    // Le nouvel abonne doit connaitre l'etat sans attendre la prochaine trame.
+    events.onStatus?.(this.status);
+    if (this.latest.timestamp > 0) events.onSample?.(this.latest);
+    const identity = this.getIdentity();
+    if (identity && this.status === "connecte") events.onIdentity?.(identity);
+  }
+
   getStatus(): WatchStatus {
     return this.status;
   }
@@ -420,6 +434,19 @@ export function parseRscMeasurement(value: DataView): Partial<LiveSample> {
   }
 
   return { speed, cadence, strideLength, totalDistance };
+}
+
+/**
+ * Connexion partagee par l'application. Comme l'enregistreur de seance, elle
+ * ne doit pas etre recreee a chaque affichage de l'ecran Seance : la montre
+ * resterait connectee a un objet devenu invisible.
+ */
+let sharedConnection: Fit100SConnection | null = null;
+
+export function watchConnection(events: WatchEvents = {}): Fit100SConnection {
+  if (!sharedConnection) sharedConnection = new Fit100SConnection(events);
+  else sharedConnection.setEvents(events);
+  return sharedConnection;
 }
 
 /**

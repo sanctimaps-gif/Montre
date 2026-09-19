@@ -4,12 +4,12 @@ import { computeHrZones, hrToZone } from "@montre/core";
 import { api } from "../api.ts";
 import type { SessionAnalysis } from "../api.ts";
 import {
-  Fit100SConnection,
   bluetoothUnavailableReason,
   isBluetoothSupported,
+  watchConnection,
 } from "../device/fit100s.ts";
 import type { DeviceIdentity, LiveSample, WatchStatus } from "../device/fit100s.ts";
-import { SessionRecorder, currentPace } from "../device/recorder.ts";
+import { currentPace, sessionRecorder } from "../device/recorder.ts";
 import type { RecorderState } from "../device/recorder.ts";
 import { useSession } from "../session.tsx";
 import { SPORT_LABELS, ZONE_COLORS, duration, km, pace } from "../format.ts";
@@ -27,12 +27,9 @@ export function Record() {
   const navigate = useNavigate();
   const { profile } = useSession();
 
-  // L'enregistreur et la connexion Bluetooth vivent au-dela des rendus React.
-  const recorderRef = useRef<SessionRecorder>();
-  if (!recorderRef.current) recorderRef.current = new SessionRecorder();
-  const recorder = recorderRef.current;
-
-  const watchRef = useRef<Fit100SConnection | null>(null);
+  // L'enregistreur et la connexion Bluetooth sont partages par l'application :
+  // quitter cet ecran en pleine sortie ne doit rien interrompre.
+  const recorder = sessionRecorder;
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   const [state, setState] = useState<RecorderState>(recorder.getState());
@@ -60,6 +57,28 @@ export function Record() {
     [profile],
   );
 
+  /** Branche l'ecran sur la connexion partagee, sans la recreer. */
+  const bindWatch = useCallback(
+    () =>
+      watchConnection({
+        onStatus: (status, detail) => {
+          setWatchStatus(status);
+          setWatchDetail(detail ?? null);
+        },
+        onSample: (next) => {
+          setSample(next);
+          recorder.updateSample(next);
+        },
+        onIdentity: (next) => setIdentity(next),
+      }),
+    [recorder],
+  );
+
+  // Au retour sur cet ecran, on recupere l'etat de la montre deja connectee.
+  useEffect(() => {
+    bindWatch();
+  }, [bindWatch]);
+
   const connect = useCallback(async () => {
     setError(null);
     if (!isBluetoothSupported()) {
@@ -67,18 +86,7 @@ export function Record() {
       return;
     }
 
-    const connection = new Fit100SConnection({
-      onStatus: (status, detail) => {
-        setWatchStatus(status);
-        setWatchDetail(detail ?? null);
-      },
-      onSample: (next) => {
-        setSample(next);
-        recorder.updateSample(next);
-      },
-      onIdentity: (next) => setIdentity(next),
-    });
-    watchRef.current = connection;
+    const connection = bindWatch();
 
     try {
       const found = await connection.connect();
@@ -98,7 +106,7 @@ export function Record() {
       setError(/cancelled|annul/i.test(message) ? null : message);
       setWatchStatus("deconnecte");
     }
-  }, [recorder]);
+  }, [bindWatch]);
 
   /** Empeche l'ecran de s'eteindre pendant la seance, quand le navigateur le permet. */
   const acquireWakeLock = useCallback(async () => {
@@ -226,7 +234,7 @@ export function Record() {
               <button
                 className="discret"
                 onClick={() => {
-                  watchRef.current?.disconnect();
+                  bindWatch().disconnect();
                   setIdentity(null);
                 }}
               >

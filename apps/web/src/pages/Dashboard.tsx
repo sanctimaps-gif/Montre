@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import type { ActivitySummary, FitnessResponse, TodayResponse } from "../api.ts";
 import { api } from "../api.ts";
 import { BarChart, LineChart, Legende, PuceLegende } from "../components/Chart.tsx";
+import { DemoData } from "../components/DemoData.tsx";
 import { WorkoutCard } from "../components/WorkoutSteps.tsx";
 import { useSession } from "../session.tsx";
 import {
@@ -211,6 +212,7 @@ export function Dashboard() {
           <div className="vide">
             Aucune activite pour l'instant. Importe un fichier depuis Decathlon Coach ou
             enregistre une seance en direct.
+            <DemoData onLoaded={() => window.location.reload()} />
           </div>
         ) : (
           recent.map((activity) => (

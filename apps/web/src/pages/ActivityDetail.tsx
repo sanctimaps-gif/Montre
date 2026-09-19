@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import type { Activity } from "@montre/core";
 import { movingAverage } from "@montre/core";
 import type { Comment, SessionAnalysis } from "../api.ts";
-import { api, getToken } from "../api.ts";
+import { STANDALONE, api } from "../api.ts";
 import { LineChart, Legende, PuceLegende } from "../components/Chart.tsx";
 import { TrackMap } from "../components/TrackMap.tsx";
 import { ZoneBar } from "../components/ZoneBar.tsx";
@@ -134,18 +134,9 @@ export function ActivityDetail() {
         {!editing && (
           <div className="actions">
             <button onClick={() => setEditing(true)}>Modifier</button>
-            <button onClick={sendToStrava}>Envoyer sur Strava</button>
-            <a
-              className="bouton"
-              href={`/api/activities/${activity.id}/export?format=gpx`}
-              onClick={(e) => {
-                // Le telechargement direct ne porte pas l'en-tete d'authentification.
-                e.preventDefault();
-                void downloadExport(activity.id, "gpx");
-              }}
-            >
-              Exporter
-            </a>
+            {!STANDALONE && <button onClick={sendToStrava}>Envoyer sur Strava</button>}
+            <button onClick={() => downloadExport(activity.id, "gpx")}>Exporter en GPX</button>
+            <button onClick={() => downloadExport(activity.id, "tcx")}>Exporter en TCX</button>
             <button className="danger" onClick={remove}>
               Supprimer
             </button>
@@ -356,13 +347,9 @@ function smoothed(values: Array<number | null>): Array<number | null> {
   return values.map((v, i) => (v == null ? null : result[i]!));
 }
 
-/** Telechargement authentifie d'un export, via un objet URL temporaire. */
+/** Telechargement d'un export, via un objet URL temporaire. */
 async function downloadExport(id: string, format: "gpx" | "tcx"): Promise<void> {
-  const response = await fetch(`/api/activities/${id}/export?format=${format}`, {
-    headers: { Authorization: `Bearer ${getToken() ?? ""}` },
-  });
-  if (!response.ok) return;
-  const blob = await response.blob();
+  const blob = await api.exportActivity(id, format);
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

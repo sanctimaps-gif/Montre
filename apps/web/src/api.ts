@@ -1,16 +1,42 @@
+import type { Activity, AthleteProfile, TrainingPlan, User } from "@montre/core";
 import type {
-  Activity,
-  AthleteProfile,
-  FitnessState,
-  TrainingPlan,
-  User,
-  Workout,
-} from "@montre/core";
+  ActivitySummary,
+  Comment,
+  DeviceRecord,
+  FeedItem,
+  FitnessResponse,
+  ImportResult,
+  MontreApi,
+  SessionAnalysis,
+  SessionPayload,
+  SportStat,
+  StravaStatus,
+  TodayResponse,
+} from "./api-types.ts";
+import { localApi } from "./standalone/local-api.ts";
+
+export type {
+  ActivitySummary,
+  Comment,
+  DeviceRecord,
+  FeedItem,
+  FitnessResponse,
+  ImportResult,
+  SessionAnalysis,
+  SportStat,
+  StravaStatus,
+  TodayResponse,
+} from "./api-types.ts";
 
 /**
- * Client HTTP de l'API. Le jeton de session est conserve dans le stockage
- * local et ajoute a chaque appel.
+ * Client de l'API.
+ *
+ * L'application se compile en deux variantes. Avec le serveur, elle parle a
+ * l'API HTTP. En mode autonome — la version publiee sur une page statique —
+ * tout s'execute dans le navigateur, avec `@montre/core` pour la logique et
+ * IndexedDB pour le stockage.
  */
+export const STANDALONE = import.meta.env["VITE_STANDALONE"] === "1";
 
 const TOKEN_KEY = "montre.token";
 
@@ -78,97 +104,27 @@ async function request<T>(
   return payload as T;
 }
 
-export interface ActivitySummary extends Omit<Activity, "points" | "laps"> {
-  pointCount: number;
-  lapCount: number;
-}
+/** Implementation adossee au serveur Node. */
+const remoteApi: MontreApi = {
+  requiresAuth: true,
+  standalone: false,
 
-export interface SessionAnalysis {
-  headline: string;
-  insights: string[];
-  nextStep: string;
-}
-
-export interface FeedItem {
-  id: string;
-  userId: string;
-  athlete: string;
-  sport: string;
-  title: string;
-  startTime: number;
-  distance: number;
-  movingTime: number;
-  elevationGain: number;
-  avgHr?: number;
-  source: string;
-  trainingLoad?: number;
-  kudosCount: number;
-  commentCount: number;
-  kudoed: boolean;
-  isMine: boolean;
-}
-
-export interface Comment {
-  id: string;
-  body: string;
-  createdAt: number;
-  author: string;
-  authorId: string;
-}
-
-export interface FitnessResponse {
-  series: FitnessState[];
-  today?: FitnessState;
-  form: { verdict: string; message: string };
-  acwr?: number;
-  weekly: Array<{ week: string; load: number }>;
-}
-
-export interface TodayResponse {
-  workout: Workout;
-  reason: string;
-  warning?: string;
-  paces: Record<string, number> | null;
-  hasPlan: boolean;
-}
-
-export interface DeviceRecord {
-  id: string;
-  name: string;
-  model?: string;
-  firmware?: string;
-  serial?: string;
-  lastSeenAt?: number;
-  lastBattery?: number;
-  transport: string;
-}
-
-export interface StravaStatus {
-  configured: boolean;
-  connected: boolean;
-  athleteName?: string;
-  lastSyncAt?: number;
-}
-
-export const api = {
-  register: (email: string, password: string, displayName: string) =>
+  register: (email, password, displayName) =>
     request<{ user: User; token: string }>("/api/auth/register", {
       body: { email, password, displayName },
     }),
 
-  login: (email: string, password: string) =>
-    request<{ user: User; token: string }>("/api/auth/login", {
-      body: { email, password },
-    }),
+  login: (email, password) =>
+    request<{ user: User; token: string }>("/api/auth/login", { body: { email, password } }),
 
   logout: () => request<{ ok: true }>("/api/auth/logout", { method: "POST" }),
 
   me: () => request<{ user: User; profile: AthleteProfile }>("/api/auth/me"),
 
-  updateProfile: (profile: Partial<AthleteProfile>) =>
+  updateProfile: (profile) =>
     request<AthleteProfile>("/api/profile", { method: "PUT", body: profile }),
 
-  activities: (params: { limit?: number; offset?: number; sport?: string } = {}) => {
+  activities: (params = {}) => {
     const query = new URLSearchParams();
     if (params.limit) query.set("limit", String(params.limit));
     if (params.offset) query.set("offset", String(params.offset));
@@ -176,45 +132,36 @@ export const api = {
     return request<ActivitySummary[]>(`/api/activities?${query}`);
   },
 
-  activity: (id: string) =>
-    request<Activity & { analysis: SessionAnalysis }>(`/api/activities/${id}`),
+  activity: (id) => request<Activity & { analysis: SessionAnalysis }>(`/api/activities/${id}`),
 
-  importFile: (file: File) =>
+  importFile: (file) =>
     file.arrayBuffer().then((buffer) =>
-      request<{
-        activity: ActivitySummary | null;
-        duplicate: boolean;
-        existingId?: string;
-        analysis?: SessionAnalysis;
-        device?: string;
-      }>("/api/activities/import", {
+      request<ImportResult>("/api/activities/import", {
         method: "POST",
         raw: buffer,
         headers: { "Content-Type": "application/octet-stream", "X-Filename": file.name },
       }),
     ),
 
-  saveSession: (payload: {
-    sport: string;
-    title?: string;
-    startTime: number;
-    points: unknown[];
-    laps: unknown[];
-  }) =>
+  saveSession: (payload: SessionPayload) =>
     request<{ activity: ActivitySummary; analysis: SessionAnalysis }>("/api/activities", {
       body: payload,
     }),
 
-  updateActivity: (id: string, changes: { title?: string; description?: string; sport?: string }) =>
+  updateActivity: (id, changes) =>
     request<ActivitySummary>(`/api/activities/${id}`, { method: "PATCH", body: changes }),
 
-  deleteActivity: (id: string) =>
-    request<{ ok: true }>(`/api/activities/${id}`, { method: "DELETE" }),
+  deleteActivity: (id) => request<{ ok: true }>(`/api/activities/${id}`, { method: "DELETE" }),
 
-  stats: () =>
-    request<Array<{ sport: string; count: number; distance: number; duration: number; elevation: number }>>(
-      "/api/stats",
-    ),
+  exportActivity: async (id, format) => {
+    const response = await fetch(`/api/activities/${id}/export?format=${format}`, {
+      headers: { Authorization: `Bearer ${getToken() ?? ""}` },
+    });
+    if (!response.ok) throw new ApiError(response.status, "Export impossible");
+    return response.blob();
+  },
+
+  stats: () => request<SportStat[]>("/api/stats"),
 
   fitness: () => request<FitnessResponse>("/api/fitness"),
 
@@ -222,44 +169,35 @@ export const api = {
 
   plan: () => request<TrainingPlan | null>("/api/coach/plan"),
 
-  createPlan: (goal: string, targetDate: string, targetTime?: number) =>
+  createPlan: (goal, targetDate, targetTime) =>
     request<TrainingPlan>("/api/coach/plan", { body: { goal, targetDate, targetTime } }),
 
-  deletePlan: (id: string) =>
-    request<{ ok: true }>(`/api/coach/plan/${id}`, { method: "DELETE" }),
+  deletePlan: (id) => request<{ ok: true }>(`/api/coach/plan/${id}`, { method: "DELETE" }),
 
   feed: () => request<FeedItem[]>("/api/feed"),
 
-  kudos: (activityId: string) =>
+  kudos: (activityId) =>
     request<{ kudoed: boolean; count: number }>(`/api/activities/${activityId}/kudos`, {
       method: "POST",
     }),
 
-  comments: (activityId: string) =>
-    request<Comment[]>(`/api/activities/${activityId}/comments`),
+  comments: (activityId) => request<Comment[]>(`/api/activities/${activityId}/comments`),
 
-  addComment: (activityId: string, body: string) =>
+  addComment: (activityId, body) =>
     request<Comment>(`/api/activities/${activityId}/comments`, { body: { body } }),
 
   athletes: () =>
     request<Array<{ id: string; displayName: string; following: boolean }>>("/api/athletes"),
 
-  follow: (id: string) =>
+  follow: (id) =>
     request<{ following: boolean }>(`/api/athletes/${id}/follow`, { method: "POST" }),
 
   devices: () => request<DeviceRecord[]>("/api/devices"),
 
-  saveDevice: (device: {
-    id?: string;
-    name: string;
-    model?: string;
-    firmware?: string;
-    serial?: string;
-    battery?: number;
-  }) => request<{ id: string; lastSeenAt: number }>("/api/devices", { body: device }),
+  saveDevice: (device) =>
+    request<{ id: string; lastSeenAt: number }>("/api/devices", { body: device }),
 
-  deleteDevice: (id: string) =>
-    request<{ ok: true }>(`/api/devices/${id}`, { method: "DELETE" }),
+  deleteDevice: (id) => request<{ ok: true }>(`/api/devices/${id}`, { method: "DELETE" }),
 
   stravaStatus: () => request<StravaStatus>("/api/strava/status"),
 
@@ -268,10 +206,12 @@ export const api = {
   stravaSync: () =>
     request<{ imported: number; skipped: number }>("/api/strava/sync", { method: "POST" }),
 
-  stravaUpload: (activityId: string) =>
+  stravaUpload: (activityId) =>
     request<{ uploadId: string; status: string }>(`/api/strava/upload/${activityId}`, {
       method: "POST",
     }),
 
   stravaDisconnect: () => request<{ ok: true }>("/api/strava", { method: "DELETE" }),
 };
+
+export const api: MontreApi = STANDALONE ? localApi : remoteApi;

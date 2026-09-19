@@ -74,6 +74,27 @@ React et Vite, trois dépendances de production (`react`, `react-dom`, `react-ro
   l'athlète ne sont envoyées à aucun fournisseur de tuiles. La trace est projetée avec une
   correction en cosinus de la latitude, sans quoi les parcours paraissent étirés.
 
+## Mode autonome
+
+L'application se compile en deux variantes depuis les mêmes sources. Avec le serveur, elle
+parle à l'API HTTP. En mode autonome (`VITE_STANDALONE=1`), tout s'exécute dans le
+navigateur.
+
+C'est `packages/core` qui rend la chose possible : sans dépendance et sans rien connaître de
+HTTP ni du système de fichiers, il tourne aussi bien dans Node que dans un navigateur. Les
+métriques, la charge d'entraînement et les recommandations du coach sont donc littéralement
+le même code dans les deux variantes.
+
+- `src/api-types.ts` définit l'interface `MontreApi` que les deux implémentations respectent.
+- `src/standalone/local-api.ts` l'implémente sur IndexedDB (`storage.ts`). Le stockage local
+  classique aurait suffi pour un profil, pas pour des traces : une heure enregistrée à 1 Hz
+  pèse déjà plusieurs centaines de kilo-octets, et le quota de 5 Mo serait vite atteint.
+- Ce qui exige structurellement un serveur — comptes, partage, secret client Strava — n'est
+  pas simulé : ces méthodes expliquent pourquoi elles ne peuvent pas aboutir.
+- Le routage passe par le fragment d'URL, et les chemins des ressources sont relatifs :
+  la même construction fonctionne à la racine d'un domaine comme dans un sous-dossier, et
+  un lien profond reste rechargeable sans réécriture d'URL côté serveur.
+
 ## Tests
 
 34 tests dans `packages/core/test`, exécutés par `node --test` sans dépendance :

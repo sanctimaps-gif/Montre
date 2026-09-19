@@ -61,9 +61,15 @@ a {
 }
 
 /* Mise en page générale : barre latérale sur ordinateur, barre basse sur mobile. */
+/*
+ * `minmax(0, 1fr)` et non `1fr` : une piste `1fr` a pour minimum automatique le
+ * min-content de son contenu, si bien qu'un seul élément large étire toute la
+ * colonne et fait déborder la page horizontalement. Le minimum à zéro autorise
+ * la colonne à se réduire, et c'est au contenu de s'adapter.
+ */
 .app {
   display: grid;
-  grid-template-columns: 232px 1fr;
+  grid-template-columns: 232px minmax(0, 1fr);
   min-height: 100%;
 }
 
@@ -131,6 +137,7 @@ a {
   padding: 28px 32px 60px;
   max-width: 1080px;
   width: 100%;
+  min-width: 0;
 }
 
 .entete {
@@ -161,16 +168,21 @@ a {
   background: linear-gradient(160deg, rgba(252, 82, 0, 0.08), var(--surface) 60%);
 }
 
+/*
+ * Le `min(..., 100%)` est indispensable : sans lui, deux colonnes de 230 px
+ * imposent 460 px de largeur minimale et débordent sur un écran de téléphone,
+ * car une piste `minmax` ne descend jamais sous sa borne basse.
+ */
 .grille {
   display: grid;
   gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
 }
 
 .grille-stats {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
 }
 
 .stat .valeur {
@@ -285,7 +297,7 @@ textarea:focus {
 .champs {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
 }
 
 .aide {
@@ -422,7 +434,7 @@ textarea:focus {
 
 .direct .grille-directe {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin: 22px 0;
 }
@@ -598,7 +610,7 @@ th {
 /* Mobile : navigation en bas de l'écran. */
 @media (max-width: 860px) {
   .app {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .nav {

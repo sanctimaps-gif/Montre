@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ActivitySummary } from "../api.ts";
 import { api } from "../api.ts";
+import { DemoData } from "../components/DemoData.tsx";
 import {
   SPORT_ICONS,
   SPORT_LABELS,
@@ -139,7 +140,10 @@ export function Activities() {
 
       <div className="carte" style={{ marginTop: 16 }}>
         {activities.length === 0 && !loading ? (
-          <div className="vide">Aucune activite pour le moment.</div>
+          <div className="vide">
+            Aucune activite pour le moment.
+            <DemoData onLoaded={() => load(0, true)} />
+          </div>
         ) : (
           activities.map((activity) => (
             <Link key={activity.id} to={`/activites/${activity.id}`} className="ligne-activite">

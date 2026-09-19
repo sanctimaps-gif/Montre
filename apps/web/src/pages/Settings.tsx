@@ -3,12 +3,12 @@ import { useSearchParams } from "react-router-dom";
 import type { AthleteProfile } from "@montre/core";
 import { computeHrZones, estimateMaxHr, trainingPaces } from "@montre/core";
 import type { DeviceRecord, StravaStatus } from "../api.ts";
-import { api } from "../api.ts";
+import { STANDALONE, api } from "../api.ts";
 import {
   DECATHLON_NAME_PREFIXES,
-  Fit100SConnection,
   bluetoothUnavailableReason,
   isBluetoothSupported,
+  watchConnection,
 } from "../device/fit100s.ts";
 import { useSession } from "../session.tsx";
 import { ZONE_COLORS, pace, relative } from "../format.ts";
@@ -21,6 +21,7 @@ export function Settings() {
   const [strava, setStrava] = useState<StravaStatus | null>(null);
   const [message, setMessage] = useState<{ type: string; text: string } | null>(null);
   const [pairing, setPairing] = useState(false);
+  const [displayName, setDisplayName] = useState(user?.displayName ?? "");
 
   useEffect(() => {
     if (profile) setForm(profile);
@@ -49,12 +50,23 @@ export function Settings() {
   const saveProfile = async () => {
     setMessage(null);
     try {
+      // Sans comptes, le nom affiche se modifie ici plutot qu'a l'inscription.
+      if (STANDALONE && displayName.trim() && displayName !== user?.displayName) {
+        await api.register("", "", displayName);
+      }
       await api.updateProfile(form);
       await refreshProfile();
       setMessage({ type: "succes", text: "Profil enregistre." });
     } catch (error) {
       setMessage({ type: "erreur", text: (error as Error).message });
     }
+  };
+
+  const eraseLocalData = async () => {
+    if (!api.resetLocalData) return;
+    if (!confirm("Effacer toutes les activites et le plan stockes dans ce navigateur ?")) return;
+    await api.resetLocalData();
+    setMessage({ type: "succes", text: "Donnees locales effacees." });
   };
 
   /** Appairage : ouvre le selecteur Bluetooth et memorise la montre trouvee. */
@@ -65,7 +77,8 @@ export function Settings() {
       return;
     }
     setPairing(true);
-    const connection = new Fit100SConnection({});
+    // La montre appairee ici reste connectee : elle sera prete pour la seance.
+    const connection = watchConnection({});
     try {
       const identity = await connection.connect();
       await api.saveDevice({
@@ -76,12 +89,18 @@ export function Settings() {
         serial: identity.serial,
       });
       setDevices(await api.devices());
-      setMessage({ type: "succes", text: `${identity.name} appairee.` });
+      setMessage({
+        type: "succes",
+        text: `${identity.name} appairee et connectee. Va dans Seance pour demarrer.`,
+      });
     } catch (error) {
       const text = (error as Error).message;
-      if (!/cancelled|annul/i.test(text)) setMessage({ type: "erreur", text });
+      // Le selecteur ferme sans choisir n'est pas une erreur a signaler.
+      if (!/cancelled|annul/i.test(text)) {
+        setMessage({ type: "erreur", text });
+        connection.disconnect();
+      }
     } finally {
-      connection.disconnect();
       setPairing(false);
     }
   };
@@ -118,13 +137,26 @@ export function Settings() {
         <div>
           <h1>Reglages</h1>
           <p className="sous-titre">
-            {user?.displayName} · {user?.email}
+            {user?.displayName}
+            {user?.email ? ` · ${user.email}` : ""}
           </p>
         </div>
-        <button className="discret" onClick={() => logout()}>
-          Se deconnecter
-        </button>
+        {!STANDALONE && (
+          <button className="discret" onClick={() => logout()}>
+            Se deconnecter
+          </button>
+        )}
       </div>
+
+      {STANDALONE && (
+        <div className="message info">
+          <strong>Version autonome.</strong> Tout s'execute dans ce navigateur : les calculs
+          viennent du meme moteur que la version serveur, et tes seances sont stockees
+          localement, sur cet appareil uniquement. Il n'y a donc ni compte ni partage, et la
+          synchronisation Strava — qui exige un secret cote serveur — demande de lancer
+          l'application complete.
+        </div>
+      )}
 
       {message && <div className={`message ${message.type}`}>{message.text}</div>}
 
@@ -136,6 +168,17 @@ export function Settings() {
         </p>
 
         <div className="champs">
+          {STANDALONE && (
+            <div className="champ">
+              <label htmlFor="nom-affiche">Nom affiche</label>
+              <input
+                id="nom-affiche"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Camille"
+              />
+            </div>
+          )}
           <div className="champ">
             <label htmlFor="naissance">Date de naissance</label>
             <input
@@ -352,8 +395,9 @@ export function Settings() {
         <h2>Strava</h2>
         {!strava?.configured ? (
           <p className="aide">
-            Strava n'est pas configure sur ce serveur. Ajoute STRAVA_CLIENT_ID et
-            STRAVA_CLIENT_SECRET dans le fichier .env, puis redemarre l'API.
+            {STANDALONE
+              ? "La synchronisation Strava demande un secret client, qui ne peut pas vivre dans une page web : elle n'est disponible qu'avec le serveur de l'application. En attendant, tu peux exporter chaque seance en GPX ou TCX et la televerser sur Strava."
+              : "Strava n'est pas configure sur ce serveur. Ajoute STRAVA_CLIENT_ID et STRAVA_CLIENT_SECRET dans le fichier .env, puis redemarre l'API."}
           </p>
         ) : strava.connected ? (
           <>
@@ -390,6 +434,20 @@ export function Settings() {
           </>
         )}
       </div>
+
+      {STANDALONE && (
+        <div className="carte">
+          <h2>Mes donnees</h2>
+          <p className="sous-titre">
+            Tes seances sont stockees dans ce navigateur, sur cet appareil. Elles ne partent
+            sur aucun serveur, mais elles disparaissent si tu effaces les donnees de site.
+            Exporte tes seances en GPX ou TCX pour les conserver ailleurs.
+          </p>
+          <button className="danger" onClick={eraseLocalData}>
+            Effacer toutes mes donnees locales
+          </button>
+        </div>
+      )}
     </>
   );
 }
