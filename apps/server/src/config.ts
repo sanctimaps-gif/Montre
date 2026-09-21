@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { hasWebBuild } from "./static.ts";
 
 /**
  * Configuration lue dans l'environnement, avec un .env optionnel a la racine
@@ -27,10 +28,21 @@ function loadDotEnv(): void {
 
 loadDotEnv();
 
+const port = Number(process.env["PORT"] ?? 8787);
+
 export const config = {
-  port: Number(process.env["PORT"] ?? 8787),
-  /** Origine du front, utilisee pour le CORS et les redirections OAuth. */
-  webOrigin: process.env["WEB_ORIGIN"] ?? "http://localhost:5173",
+  port,
+  /**
+   * Origine du front, utilisee pour le CORS et les redirections OAuth.
+   *
+   * Quand l'application web a ete construite, le serveur la sert lui-meme :
+   * front et API partagent alors la meme origine, et le retour d'autorisation
+   * Strava revient naturellement au bon endroit. Sinon on vise le serveur de
+   * developpement de Vite.
+   */
+  webOrigin:
+    process.env["WEB_ORIGIN"] ??
+    (hasWebBuild() ? `http://localhost:${port}` : "http://localhost:5173"),
   databasePath: process.env["DATABASE_PATH"] ?? "data/montre.sqlite",
   strava: {
     clientId: process.env["STRAVA_CLIENT_ID"] ?? "",

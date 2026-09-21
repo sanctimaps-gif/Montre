@@ -59,6 +59,13 @@ centaine de lignes.
   fois la même activité, qu'elle vienne de Strava ou d'un fichier.
 - **OAuth Strava** : jetons d'état à usage unique en base (dix minutes de validité) plutôt
   qu'un secret partagé ; jetons d'accès rafraîchis automatiquement avec une minute de marge.
+- **Service de l'application web** (`static.ts`) : quand la construction du front existe, le
+  serveur la sert lui-même. Un seul processus, une seule adresse — plus de question de CORS,
+  plus de second terminal, et l'URL de retour de l'autorisation Strava est celle de
+  l'application. C'est ce qui rend la chaîne Decathlon Hub → Strava → Montre accessible sans
+  bricolage. Toute URL hors `/api/` qui ne correspond pas à un fichier rend la page
+  principale, puisque le routage vit dans le navigateur ; et un chemin qui sortirait du
+  dossier servi est refusé avant toute lecture.
 
 ## `apps/web`
 

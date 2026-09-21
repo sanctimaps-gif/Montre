@@ -118,21 +118,31 @@ page web n'accède pas à la radio Bluetooth sans passer par du natif.
 L'écran `/montre` détecte iOS et propose quatre chemins, classés par simplicité plutôt que
 par élégance technique :
 
-1. **Un ordinateur ou un Android avec Chrome.** Rien à installer, le direct fonctionne.
-2. **L'export depuis Decathlon Coach**, recommandé sur iPhone. La montre se synchronise
-   déjà avec Decathlon Coach via le Bluetooth du système ; il suffit d'en sortir un fichier
-   et de l'importer ici. On obtient exactement les mêmes analyses — seul l'affichage
-   pendant l'effort manque.
-3. **L'enregistrement avec le téléphone seul.** GPS, chrono, distance, allure, dénivelé et
-   tours automatiques sans aucune montre ; il ne manque que la fréquence cardiaque.
+1. **Decathlon Hub, puis Strava.** La chaîne officielle, et la seule automatique sur iPhone.
+   [Decathlon Hub](https://support.decathlon.fr/decathlon-hub) est l'application de Decathlon
+   pour les montres FIT 100 : elle parle à la montre en Bluetooth nativement, et sait pousser
+   les séances vers Strava. L'application lit Strava. Une fois les trois maillons en place,
+   les séances arrivent sans intervention. Seule contrainte : l'étape Strava demande le
+   serveur, son API exigeant un secret client.
+2. **L'export de fichier depuis Decathlon Hub.** Le même trajet, en manuel, sans serveur.
+   On obtient exactement les mêmes analyses — seul l'affichage pendant l'effort manque.
+3. **Un ordinateur ou un Android avec Chrome.** Rien à installer, le direct fonctionne.
 4. **Bluefy – Web BLE Browser**, un navigateur de l'App Store qui implémente Web Bluetooth
-   par-dessus CoreBluetooth. C'est la seule façon d'avoir le direct sur iPhone, mais elle
-   arrive en dernier : elle demande d'installer une application pour un gain que l'option 2
-   couvre presque entièrement.
+   par-dessus CoreBluetooth. C'est la seule façon d'avoir le cardio à l'écran pendant
+   l'effort sur iPhone, mais elle arrive en dernier : elle demande d'installer une
+   application pour un gain que les options 1 et 2 couvrent presque entièrement.
 
-Il existe aussi un chemin entièrement automatique : Decathlon Coach sait envoyer les séances
-vers Strava, et l'application sait les récupérer depuis Strava. Il demande en revanche de
-faire tourner le serveur, l'API Strava exigeant un secret client.
+Et sans montre du tout, l'écran Séance enregistre le chrono, le GPS, l'allure, le dénivelé et
+les tours automatiques avec le seul téléphone.
+
+### Pourquoi pas un hub Bluetooth maison
+
+On pourrait écrire un compagnon Node qui parle à la montre en Bluetooth natif, à la manière
+de Decathlon Hub. Ce serait du code non vérifiable ici — dépendances natives par plateforme,
+protocole propriétaire non documenté — pour reproduire ce que l'application officielle fait
+déjà, gratuitement et de façon supportée, avec en prime la synchronisation Strava. Le travail
+utile était donc de brancher proprement l'extrémité de cette chaîne, pas d'en refaire le
+début.
 
 `bluetoothEnvironment()` renvoie la cause exacte de l'indisponibilité — plateforme,
 navigateur ou absence de HTTPS — plutôt que de laisser un bouton qui ne répond pas.

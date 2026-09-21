@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { LiveSample } from "@montre/core";
 import { computeHrZones, hrToZone } from "@montre/core";
-import { api } from "../api.ts";
+import { STANDALONE, api } from "../api.ts";
 import type { DeviceRecord } from "../api.ts";
 import {
   DECATHLON_NAME_PREFIXES,
@@ -28,7 +28,7 @@ const STATUS_LABELS: Record<WatchStatus, string> = {
  *
  * L'appairage Bluetooth echoue pour un petit nombre de raisons toujours les
  * memes : plateforme sans Web Bluetooth, montre en veille, montre deja prise
- * par l'application Decathlon Coach, ou filtre de recherche trop strict. Cet
+ * par Decathlon Hub, ou filtre de recherche trop strict. Cet
  * ecran traite chacune explicitement, et se termine par un test en direct :
  * voir sa frequence cardiaque defiler est la seule preuve qui compte.
  */
@@ -147,57 +147,39 @@ export function Watch() {
             )}
           </div>
 
-          <Option
-            numero={1}
-            titre="Sur un ordinateur ou un telephone Android"
-            resume="Le direct, sans rien installer"
-          >
-            <p>
-              Ouvre cette meme adresse dans <strong>Chrome</strong>, Edge ou Opera. La
-              connexion Bluetooth y fonctionne nativement : tu vois ta frequence cardiaque
-              defiler et tu peux enregistrer tes seances en direct.
-            </p>
-            <div className="actions">
-              <button className="primaire" onClick={copyLink}>
-                {copied ? "Adresse copiee" : "Copier l'adresse de la page"}
-              </button>
-            </div>
-          </Option>
+          <HubOption numero={1} />
 
           <Option
             numero={2}
-            titre="Depuis l'application Decathlon Coach"
-            resume="Recommande sur iPhone — toutes les analyses, sans Bluetooth"
+            titre="Exporter une seance depuis Decathlon Hub"
+            resume="Sans rien installer d'autre, et sans serveur"
           >
             <p>
-              Ta montre se synchronise deja avec Decathlon Coach sur ton iPhone, par le
-              Bluetooth du systeme. Il suffit ensuite d'en sortir tes seances : le fichier
-              contient tout, trace GPS, cardio, cadence et tours.
+              Meme principe, en manuel : une fois la seance remontee dans Decathlon Hub,
+              sors-en un fichier et depose-le ici. Il contient tout — trace GPS, cardio,
+              cadence et tours.
             </p>
             <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
-              <li>Synchronise ta montre avec Decathlon Coach, comme d'habitude.</li>
+              <li>Ouvre la seance dans Decathlon Hub.</li>
               <li>
-                Ouvre la seance dans Decathlon Coach, puis cherche{" "}
-                <strong>Partager</strong> ou <strong>Exporter</strong> — selon les versions,
-                dans le menu « … » en haut de la seance.
+                Cherche <strong>Partager</strong> ou <strong>Exporter</strong>, souvent dans
+                le menu « … » en haut de la seance.
               </li>
               <li>
-                Choisis un export <strong>GPX</strong>, <strong>TCX</strong> ou{" "}
-                <strong>FIT</strong>, puis <strong>Enregistrer dans Fichiers</strong>.
+                Choisis <strong>GPX</strong>, <strong>TCX</strong> ou <strong>FIT</strong>,
+                puis <strong>Enregistrer dans Fichiers</strong>.
               </li>
               <li>
-                Reviens ici, va dans{" "}
+                Reviens ici, dans{" "}
                 <Link to="/activites" style={{ textDecoration: "underline" }}>
                   Activites
-                </Link>{" "}
-                et appuie sur « Importer un fichier ». Selectionne le fichier depuis
-                l'application Fichiers.
+                </Link>
+                , et choisis le fichier depuis l'application Fichiers.
               </li>
             </ol>
             <p className="aide">
-              Tu obtiens exactement les memes analyses qu'avec le direct — zones cardiaques,
-              charge, derive, records, coaching. La seule chose que tu perds est l'affichage
-              pendant l'effort.
+              Tu obtiens exactement les memes analyses que par le direct — zones, charge,
+              derive cardiaque, records, coaching.
             </p>
             <div className="actions">
               <Link to="/activites" className="bouton primaire">
@@ -208,36 +190,32 @@ export function Watch() {
 
           <Option
             numero={3}
-            titre="Enregistrer avec le telephone seul"
-            resume="Sans la montre, et sans rien installer"
+            titre="Sur un ordinateur ou un telephone Android"
+            resume="Le direct, sans rien installer"
           >
             <p>
-              L'ecran{" "}
-              <Link to="/seance" style={{ textDecoration: "underline" }}>
-                Seance
-              </Link>{" "}
-              enregistre le chrono, le GPS, la distance, l'allure, le denivele et les tours
-              automatiques avec le seul telephone. Il ne manque que la frequence cardiaque,
-              qui vient du capteur de la montre.
+              Ouvre cette meme adresse dans <strong>Chrome</strong>, Edge ou Opera. La
+              connexion Bluetooth y fonctionne nativement : tu vois ta frequence cardiaque
+              defiler et tu peux enregistrer tes seances en direct.
             </p>
-            <p className="aide">
-              Garde l'ecran allume ou le telephone en poche : iOS suspend les pages en
-              arriere-plan, mais le chrono se rattrape sur l'horloge a chaque retour, sans
-              perdre de temps.
-            </p>
+            <div className="actions">
+              <button onClick={copyLink}>
+                {copied ? "Adresse copiee" : "Copier l'adresse de la page"}
+              </button>
+            </div>
           </Option>
 
           {environment.kind === "ios" && (
             <Option
               numero={4}
-              titre="Bluefy, pour avoir quand meme le direct sur iPhone"
+              titre="Bluefy, pour le direct sur iPhone"
               resume="Un navigateur tiers a installer"
             >
               <p>
-                <strong>Bluefy – Web BLE Browser</strong>, sur l'App Store, est un navigateur
-                qui implemente Web Bluetooth par-dessus le Bluetooth d'iOS — ce que Safari ne
-                fait pas. Copie l'adresse de cette page, ouvre-la dans Bluefy, et la
-                recherche de montre fonctionne comme sur un ordinateur.
+                <strong>Bluefy – Web BLE Browser</strong>, sur l'App Store, implemente Web
+                Bluetooth par-dessus le Bluetooth d'iOS — ce que Safari ne fait pas. Copie
+                l'adresse de cette page, ouvre-la dans Bluefy, et la recherche de montre
+                fonctionne comme sur un ordinateur.
               </p>
               <div className="actions">
                 <button onClick={copyLink}>
@@ -245,20 +223,22 @@ export function Watch() {
                 </button>
               </div>
               <p className="aide">
-                C'est la seule facon d'avoir le cardio en direct sur un iPhone. Si tu n'y
-                tiens pas, l'option 2 te donne toutes les analyses sans rien installer.
+                C'est la seule facon d'avoir le cardio a l'ecran pendant l'effort sur un
+                iPhone. Pour tout le reste, les options 1 et 2 suffisent.
               </p>
             </Option>
           )}
 
           <div className="carte">
-            <h3>Et automatiquement, sans rien faire ?</h3>
+            <h3>Et sans la montre du tout ?</h3>
             <p className="aide">
-              Decathlon Coach sait envoyer tes seances vers Strava, et cette application sait
-              les recuperer depuis Strava. La chaine montre → Decathlon Coach → Strava →
-              Montre est entierement automatique. Elle demande en revanche de faire tourner
-              le serveur de l'application : l'acces a l'API Strava exige un secret qui ne peut
-              pas vivre dans une page web.
+              L'ecran{" "}
+              <Link to="/seance" style={{ textDecoration: "underline" }}>
+                Seance
+              </Link>{" "}
+              enregistre le chrono, le GPS, la distance, l'allure, le denivele et les tours
+              automatiques avec le seul telephone. Seule la frequence cardiaque manque,
+              puisqu'elle vient du capteur de la montre.
             </p>
           </div>
         </>
@@ -272,9 +252,9 @@ export function Watch() {
                 de montres n'emettent leur frequence cardiaque qu'une fois la seance lancee.
               </li>
               <li>
-                <strong>Ferme l'application Decathlon Coach</strong> et deconnecte la montre
+                <strong>Ferme Decathlon Hub (ou Decathlon Coach)</strong> et deconnecte la montre
                 dans les reglages Bluetooth du telephone. Une montre ne peut etre connectee
-                qu'a une seule application a la fois : si Decathlon Coach la tient, nous ne
+                qu'a une seule application a la fois : si Decathlon Hub la tient, nous ne
                 pourrons pas l'avoir.
               </li>
               <li>
@@ -407,6 +387,10 @@ export function Watch() {
         </>
       )}
 
+      {/* La chaine automatique reste utile meme quand le direct fonctionne :
+          elle remonte l'historique deja stocke dans la montre. */}
+      {environment.available && <HubOption />}
+
       <div className="carte">
         <h2>Montres appairees</h2>
         {devices.length === 0 ? (
@@ -447,7 +431,7 @@ export function Watch() {
         <dl style={{ margin: 0 }}>
           <Probleme titre="La montre n'apparait dans aucune liste">
             Elle est probablement deja connectee ailleurs. Sur le telephone, va dans les
-            reglages Bluetooth du systeme et oublie la montre, ferme Decathlon Coach, puis
+            reglages Bluetooth du systeme et oublie la montre, ferme Decathlon Hub, puis
             relance la recherche. Verifie aussi que la montre est bien reveillee.
           </Probleme>
           <Probleme titre="Elle se connecte puis se deconnecte aussitot">
@@ -459,7 +443,7 @@ export function Watch() {
           </Probleme>
           <Probleme titre="Je veux quand meme mon historique">
             Le transfert des seances deja enregistrees dans la montre passe par un protocole
-            que Decathlon ne documente pas. Exporte-les depuis Decathlon Coach en .fit, .gpx
+            que Decathlon ne documente pas. Exporte-les depuis Decathlon Hub en .fit, .gpx
             ou .tcx : l'application les decode entierement, trace et cardio compris.
           </Probleme>
         </dl>
@@ -480,31 +464,35 @@ function Option({
   numero,
   titre,
   resume,
+  accent,
   children,
 }: {
-  numero: number;
+  numero?: number;
   titre: string;
   resume: string;
+  accent?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <div className="carte">
+    <div className={`carte ${accent ? "accent" : ""}`}>
       <div style={{ display: "flex", gap: 14, alignItems: "flex-start" }}>
-        <span
-          style={{
-            flexShrink: 0,
-            width: 32,
-            height: 32,
-            borderRadius: 10,
-            display: "grid",
-            placeItems: "center",
-            background: "var(--surface-haute)",
-            border: "1px solid var(--bordure)",
-            fontWeight: 700,
-          }}
-        >
-          {numero}
-        </span>
+        {numero != null && (
+          <span
+            style={{
+              flexShrink: 0,
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              display: "grid",
+              placeItems: "center",
+              background: "var(--surface-haute)",
+              border: "1px solid var(--bordure)",
+              fontWeight: 700,
+            }}
+          >
+            {numero}
+          </span>
+        )}
         <div style={{ minWidth: 0 }}>
           <h2 style={{ marginBottom: 2 }}>{titre}</h2>
           <p className="sous-titre" style={{ marginBottom: 12 }}>
@@ -514,6 +502,70 @@ function Option({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * La chaine officielle, et la seule qui soit automatique sur iPhone :
+ * la montre remonte dans Decathlon Hub — l'application de Decathlon pour la
+ * Fit 100, qui fait le Bluetooth nativement, ce qu'aucune page web ne peut
+ * faire sur iOS — Decathlon Hub pousse vers Strava, et cette application lit
+ * Strava.
+ */
+function HubOption({ numero }: { numero?: number }) {
+  return (
+    <Option
+      numero={numero}
+      accent
+      titre="Decathlon Hub, puis Strava"
+      resume="La chaine officielle, automatique une fois en place"
+    >
+      <p>
+        <strong>Decathlon Hub</strong> est l'application de Decathlon pour la Fit 100. Elle
+        parle a ta montre en Bluetooth nativement — ce qu'une page web ne peut pas faire sur
+        iPhone — et sait pousser tes seances vers Strava. Cette application, elle, sait lire
+        Strava. Une fois les trois maillons en place, tes seances arrivent ici toutes seules.
+      </p>
+      <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
+        <li>
+          Installe <strong>Decathlon Hub</strong> et appaire ta Fit 100, si ce n'est pas deja
+          fait.
+        </li>
+        <li>
+          Dans Decathlon Hub, ou sur le site HUB by Decathlon, connecte ton compte{" "}
+          <strong>Strava</strong>. La synchronisation devient automatique, en arriere-plan.
+        </li>
+        <li>
+          Ici, connecte ton compte Strava dans{" "}
+          <Link to="/reglages" style={{ textDecoration: "underline" }}>
+            Reglages
+          </Link>
+          , puis lance la synchronisation.
+        </li>
+      </ol>
+
+      {STANDALONE ? (
+        <div className="message alerte" style={{ marginBottom: 0 }}>
+          <p style={{ marginTop: 0 }}>
+            <strong>Cette etape demande le serveur de l'application.</strong> L'API Strava
+            exige un secret client, qui ne peut pas vivre dans une page web sans etre expose
+            a tous ceux qui l'ouvrent.
+          </p>
+          <p style={{ marginBottom: 0 }}>
+            Sur un ordinateur, depuis le depot :{" "}
+            <code>npm install</code>, puis <code>npm start</code>, et ouvre{" "}
+            <code>http://localhost:8787</code>. Tu y retrouves la meme application, avec la
+            synchronisation Strava en plus. Les details sont dans le fichier README.
+          </p>
+        </div>
+      ) : (
+        <div className="actions">
+          <Link to="/reglages" className="bouton primaire">
+            Connecter mon compte Strava
+          </Link>
+        </div>
+      )}
+    </Option>
   );
 }
 

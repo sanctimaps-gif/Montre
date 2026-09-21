@@ -36,18 +36,63 @@ ligne** — utile au départ d'un trail, là où il n'y a pas de réseau.
 Reconstruire cette version : `npm run build:site` (sortie dans `index.html` et `assets/`
 à la racine, d'où GitHub Pages la sert).
 
+## Récupérer les séances de ta montre
+
+Trois chemins, selon ce dont tu disposes.
+
+### Automatique — Decathlon Hub → Strava → Montre
+
+C'est la chaîne officielle, et la seule qui soit automatique depuis un iPhone.
+[Decathlon Hub](https://support.decathlon.fr/decathlon-hub) est l'application de Decathlon
+pour les montres FIT 100 : elle parle à la montre en Bluetooth **nativement**, ce qu'aucune
+page web ne peut faire sur iOS, et elle sait pousser les séances vers Strava. Cette
+application-ci lit Strava.
+
+1. Appaire ta montre dans Decathlon Hub.
+2. Dans Decathlon Hub (ou sur le site HUB by Decathlon), connecte ton compte **Strava** : la
+   synchronisation devient automatique, en arrière-plan.
+3. Ici, connecte ton compte Strava dans les Réglages et lance la synchronisation.
+
+L'étape 3 demande le serveur (voir ci-dessous) : l'API Strava exige un secret client, qui ne
+peut pas vivre dans une page web sans être exposé à tous ceux qui l'ouvrent.
+
+### Manuel — export de fichier
+
+Depuis Decathlon Hub ou Decathlon Coach, exporte la séance en `.fit`, `.gpx` ou `.tcx`, puis
+dépose-la dans l'onglet Activités. Mêmes analyses, sans serveur ni Bluetooth, sur n'importe
+quel appareil.
+
+### Direct — Bluetooth
+
+Sur Chrome, Edge ou Opera (ordinateur et Android), l'application se connecte elle-même à la
+montre et affiche la fréquence cardiaque en direct pendant la séance. Détails et dépannage
+dans [`docs/FIT100S.md`](docs/FIT100S.md).
+
 ## Démarrage
+
+Une seule commande : le serveur construit puis sert l'application **et** l'API sur la même
+adresse. C'est la version complète, Strava compris.
 
 ```bash
 cp .env.example .env     # facultatif tant que tu n'utilises pas Strava
 npm install
-npm run dev
+npm start
 ```
 
-- Front : http://localhost:5173
-- API : http://localhost:8787
+→ **http://localhost:8787**
 
 Node 22.5 ou plus récent est requis (l'API utilise `node:sqlite`, intégré à Node).
+
+Pour développer avec rechargement à chaud, `npm run dev` lance l'API sur le port 8787 et le
+serveur Vite sur http://localhost:5173.
+
+### Activer Strava
+
+1. Crée une application sur [strava.com/settings/api](https://www.strava.com/settings/api).
+   « Authorization Callback Domain » doit valoir `localhost`.
+2. Reporte l'identifiant et le secret dans `.env` (`STRAVA_CLIENT_ID`,
+   `STRAVA_CLIENT_SECRET`).
+3. Relance `npm start`, puis connecte ton compte depuis les Réglages.
 
 ```bash
 npm test        # 34 tests du cœur métier
@@ -129,14 +174,16 @@ Le moteur (`packages/core/src/coach.ts`) ne se contente pas d'afficher un plan f
 
 ## Strava
 
-Renseigne `STRAVA_CLIENT_ID` et `STRAVA_CLIENT_SECRET` dans `.env`
-([créer une application](https://www.strava.com/settings/api)), puis connecte ton compte
-depuis les **Réglages**. L'application peut alors :
+Une fois configuré (voir [Activer Strava](#activer-strava)), le connecteur fonctionne dans
+les deux sens :
 
-- importer tes activités Strava avec leurs flux complets (trace, cardio, cadence, puissance) ;
-- déposer sur Strava une séance enregistrée ici, au format TCX.
+- import des activités Strava avec leurs flux complets (trace, cardio, cadence, puissance) —
+  c'est ce qui fait arriver ici les séances poussées par Decathlon Hub ;
+- dépôt sur Strava d'une séance enregistrée par l'application, au format TCX.
 
-Sans ces variables, tout le reste de l'application fonctionne normalement.
+Les jetons sont rafraîchis automatiquement, et un index unique empêche d'importer deux fois
+la même activité. Sans configuration Strava, tout le reste de l'application fonctionne
+normalement.
 
 ## Structure
 

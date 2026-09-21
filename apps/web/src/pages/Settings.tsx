@@ -365,7 +365,7 @@ export function Settings() {
         <h3>Ce que la montre transmet, et comment</h3>
         <p className="aide">
           Decathlon ne publie pas le protocole de synchronisation de ses montres :
-          l'historique stocke dans la Fit 100 S transite vers Decathlon Coach par un
+          l'historique stocke dans la Fit 100 S transite vers Decathlon Hub par un
           service Bluetooth prive, non documente. Cette application utilise donc les deux
           chemins fiables et ouverts :
         </p>

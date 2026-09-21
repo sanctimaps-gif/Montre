@@ -84,7 +84,7 @@ export function Activities() {
         <div>
           <h1>Activites</h1>
           <p className="sous-titre">
-            Seances enregistrees, importees depuis Decathlon Coach ou synchronisees avec
+            Seances enregistrees, importees depuis Decathlon Hub ou synchronisees avec
             Strava.
           </p>
         </div>
@@ -141,9 +141,9 @@ export function Activities() {
         }}
       >
         Depose ou choisis tes fichiers <strong>.fit</strong>, <strong>.gpx</strong> ou{" "}
-        <strong>.tcx</strong> exportes de Decathlon Coach, de ta montre ou de Strava.
+        <strong>.tcx</strong> exportes de Decathlon Hub, Decathlon Coach, de ta montre ou de Strava.
         <div className="aide" style={{ marginTop: 8 }}>
-          Sur telephone, les fichiers exportes depuis Decathlon Coach se retrouvent dans
+          Sur telephone, les fichiers exportes depuis Decathlon Hub se retrouvent dans
           l'application Fichiers.{" "}
           <Link to="/montre" style={{ textDecoration: "underline" }}>
             Voir la marche a suivre

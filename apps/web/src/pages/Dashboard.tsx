@@ -210,7 +210,7 @@ export function Dashboard() {
         </div>
         {recent.length === 0 ? (
           <div className="vide">
-            Aucune activite pour l'instant. Importe un fichier depuis Decathlon Coach ou
+            Aucune activite pour l'instant. Importe un fichier depuis Decathlon Hub ou
             enregistre une seance en direct.
             <DemoData onLoaded={() => window.location.reload()} />
           </div>
