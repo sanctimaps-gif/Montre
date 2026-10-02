@@ -1,0 +1,49 @@
+name: Application Android
+
+# Construit un APK installable directement sur un telephone Android.
+# Contrairement a iOS, Android accepte une application signee avec la cle de
+# debogage : le fichier produit ici s'installe tel quel.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "apps/web/**"
+      - "packages/core/**"
+      - "scripts/build-app.mjs"
+      - ".github/workflows/android.yml"
+
+jobs:
+  construire:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Construire l'application et le projet Android
+        run: npm run app:android
+
+      - name: Compiler l'APK
+        working-directory: apps/web/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Montre-Android
+          path: apps/web/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30

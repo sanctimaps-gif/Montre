@@ -1,0 +1,66 @@
+name: Application iOS
+
+# Construit l'application iOS sur un Mac fourni par GitHub, et publie le
+# resultat en telechargement. C'est ce qui permet d'installer l'application
+# sur un iPhone sans posseder de Mac : seule la compilation exige macOS, et
+# elle se fait ici.
+#
+# Le paquet produit n'est pas signe. La signature appartient a un compte
+# Apple, qui ne peut pas vivre dans un depot public ; elle se fait au moment
+# de l'installation, avec un identifiant Apple personnel.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "apps/web/**"
+      - "packages/core/**"
+      - "scripts/build-app.mjs"
+      - ".github/workflows/ios.yml"
+
+jobs:
+  construire:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Installer les dependances
+        run: npm ci
+
+      - name: Construire l'application et le projet iOS
+        run: npm run app:ios
+
+      - name: Compiler sans signature
+        working-directory: apps/web/ios/App
+        run: |
+          xcodebuild \
+            -project App.xcodeproj \
+            -target App \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            build
+
+      - name: Empaqueter en .ipa
+        working-directory: apps/web/ios/App
+        run: |
+          # Un .ipa n'est qu'une archive zip contenant un dossier Payload.
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/App.app
+          zip -qry Montre.ipa Payload
+          ls -lh Montre.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Montre-iOS-non-signee
+          path: apps/web/ios/App/Montre.ipa
+          retention-days: 30
