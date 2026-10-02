@@ -18,7 +18,11 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist",
+    // Chaque cible a sa propre sortie : la version servie par le serveur, celle
+    // publiee en ligne et celle embarquee dans l'application native different
+    // par leur mode et leurs chemins. Un dossier commun ferait servir au
+    // serveur la derniere construite, quelle qu'elle soit.
+    outDir: process.env["VITE_OUT_DIR"] ?? "dist",
     // La version publiee est versionnee dans le depot : pas de carte de
     // sources d'un megaoctet a y faire entrer.
     sourcemap: process.env["VITE_STANDALONE"] !== "1",

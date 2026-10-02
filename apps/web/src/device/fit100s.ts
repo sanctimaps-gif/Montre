@@ -1,16 +1,19 @@
 import type { LiveSample } from "@montre/core";
 import {
+  GATT_UUID,
   parseBatteryLevel,
   parseHeartRateMeasurement,
   parseRscMeasurement,
 } from "@montre/core";
+import type { BleDevice, TransportKind } from "./ble/index.ts";
+import { TransportError, selectTransport } from "./ble/index.ts";
 
 /**
  * Connexion a la montre Decathlon Fit 100 S (et aux autres montres et
- * ceintures compatibles) via Web Bluetooth.
+ * ceintures compatibles).
  *
  * Decathlon ne publie ni SDK ni documentation du protocole de synchronisation
- * de ses montres : le transfert d'historique vers Decathlon Coach passe par un
+ * de ses montres : le transfert d'historique vers Decathlon Hub passe par un
  * service Bluetooth prive. En revanche, comme la quasi-totalite des montres de
  * sport, la Fit 100 S expose pendant l'effort les profils publics du Bluetooth
  * SIG, et ce sont eux que ce module utilise :
@@ -20,26 +23,12 @@ import {
  *   - Battery (0x180F)                   niveau de batterie
  *   - Device Information (0x180A)        modele, firmware, numero de serie
  *
- * Le decodage des trames vit dans `@montre/core` (`ble.ts`), ou il est couvert
- * par des tests : c'est la partie ou une erreur d'un octet donnerait une
- * frequence cardiaque fausse sans que rien ne le signale.
+ * La liaison elle-meme — navigateur ou Bluetooth natif de l'application
+ * installee — est choisie par `selectTransport()`. Ce module n'en sait rien :
+ * il decrit ce qu'il veut lire, pas comment la radio est atteinte.
  */
 
 export type { LiveSample } from "@montre/core";
-
-/** Identifiants des services et caracteristiques standards utilises. */
-export const GATT = {
-  heartRate: "heart_rate",
-  heartRateMeasurement: "heart_rate_measurement",
-  runningSpeedCadence: "running_speed_and_cadence",
-  rscMeasurement: "rsc_measurement",
-  battery: "battery_service",
-  batteryLevel: "battery_level",
-  deviceInformation: "device_information",
-  modelNumber: "model_number_string",
-  firmwareRevision: "firmware_revision_string",
-  serialNumber: "serial_number_string",
-} as const;
 
 /**
  * Prefixes de nom annonces par les montres Decathlon selon les generations et
@@ -94,19 +83,23 @@ export interface WatchEvents {
   onProfiles?: (profiles: DeviceProfiles) => void;
 }
 
-/** Pourquoi Web Bluetooth est indisponible, et que faire a la place. */
+/** Comment la montre peut etre atteinte sur cet appareil, et sinon pourquoi. */
 export interface BluetoothEnvironment {
   available: boolean;
-  kind: "ok" | "ios" | "firefox" | "insecure" | "indisponible";
+  kind: "natif" | "web" | "ios" | "firefox" | "insecure" | "indisponible";
   /** Explication courte, affichable telle quelle. */
   message: string;
   /** Marche a suivre concrete quand une solution existe. */
   remedy?: string;
 }
 
-/** Vrai si le navigateur expose Web Bluetooth. */
+/** Liaison Bluetooth utilisable ici, ou `null`. */
+export function activeTransport(): TransportKind | null {
+  return selectTransport()?.kind ?? null;
+}
+
 export function isBluetoothSupported(): boolean {
-  return typeof navigator !== "undefined" && "bluetooth" in navigator;
+  return selectTransport() != null;
 }
 
 function isIos(): boolean {
@@ -119,28 +112,23 @@ function isIos(): boolean {
 }
 
 /**
- * Diagnostic de la plateforme.
- *
- * Les trois causes d'indisponibilite sont toujours les memes, et chacune a une
- * solution concrete : mieux vaut la donner que se contenter d'un bouton qui ne
- * repond pas.
+ * Diagnostic de la plateforme. Quand rien n'est disponible, les causes sont
+ * toujours les memes et chacune a une solution concrete : mieux vaut la donner
+ * que se contenter d'un bouton qui ne repond pas.
  */
 export function bluetoothEnvironment(): BluetoothEnvironment {
-  if (typeof navigator === "undefined") {
-    return { available: false, kind: "indisponible", message: "Environnement sans navigateur." };
+  const transport = selectTransport();
+
+  if (transport?.kind === "natif") {
+    return {
+      available: true,
+      kind: "natif",
+      message: "Bluetooth du telephone, via l'application installee.",
+    };
   }
 
-  if (isBluetoothSupported()) {
-    if (isIos()) {
-      // Sur iOS, la seule facon d'avoir Web Bluetooth est un navigateur tiers
-      // qui l'implemente par-dessus CoreBluetooth : on y est donc deja.
-      return {
-        available: true,
-        kind: "ok",
-        message: "Bluetooth disponible dans ce navigateur.",
-      };
-    }
-    return { available: true, kind: "ok", message: "Bluetooth disponible." };
+  if (transport?.kind === "web") {
+    return { available: true, kind: "web", message: "Bluetooth disponible dans ce navigateur." };
   }
 
   if (typeof window !== "undefined" && !window.isSecureContext) {
@@ -158,9 +146,9 @@ export function bluetoothEnvironment(): BluetoothEnvironment {
       available: false,
       kind: "ios",
       message:
-        "Sur iPhone et iPad, aucun navigateur du systeme n'expose Web Bluetooth : ni Safari, ni Chrome, ni Firefox, qui reposent tous sur WebKit.",
+        "Sur iPhone et iPad, aucun navigateur du systeme n'expose le Bluetooth aux pages web : Safari, Chrome et Firefox reposent tous sur WebKit.",
       remedy:
-        "Installe Bluefy depuis l'App Store — un navigateur qui implemente Web Bluetooth — puis ouvre cette page dedans. Sinon, utilise Chrome sur Android ou sur ordinateur.",
+        "Installe l'application Montre sur ton telephone : elle accede au Bluetooth comme n'importe quelle application, et se connecte directement a ta montre.",
     };
   }
 
@@ -177,7 +165,7 @@ export function bluetoothEnvironment(): BluetoothEnvironment {
     available: false,
     kind: "indisponible",
     message: "Ce navigateur n'expose pas Web Bluetooth.",
-    remedy: "Utilise Chrome, Edge ou Opera, sur ordinateur ou sur Android.",
+    remedy: "Utilise Chrome, Edge ou Opera, ou installe l'application sur ton telephone.",
   };
 }
 
@@ -206,26 +194,19 @@ export class WatchError extends Error {
  * courant de perdre le lien quelques secondes au cours d'une sortie.
  */
 export class Fit100SConnection {
-  private device: BluetoothDevice | null = null;
-  private server: BluetoothRemoteGATTServer | null = null;
+  private device: BleDevice | null = null;
   private events: WatchEvents;
   private status: WatchStatus = "deconnecte";
   /** Derniere mesure connue, fusionnee entre les differents profils. */
   private latest: LiveSample = { timestamp: 0 };
   private identity: DeviceIdentity | null = null;
-  private profiles: DeviceProfiles = {
-    heartRate: false,
-    cadence: false,
-    battery: false,
-    deviceInformation: false,
-  };
+  private profiles: DeviceProfiles = emptyProfiles();
   private reconnectAttempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private manualDisconnect = false;
 
   constructor(events: WatchEvents = {}) {
     this.events = events;
-    this.handleDisconnection = this.handleDisconnection.bind(this);
   }
 
   /**
@@ -260,17 +241,17 @@ export class Fit100SConnection {
   }
 
   /**
-   * Ouvre le selecteur d'appareils du navigateur puis se connecte.
-   * Doit etre appelee depuis un geste utilisateur (clic) : le navigateur
-   * refuse la demande autrement.
+   * Ouvre le selecteur d'appareils puis se connecte. Doit etre appelee depuis
+   * un geste utilisateur : les navigateurs refusent la demande autrement.
    *
    * `acceptAllDevices` sert de filet : les montres n'annoncent pas toutes leur
    * nom ni leurs services dans la trame de decouverte, si bien qu'un filtre
    * trop strict peut rendre un appareil parfaitement compatible invisible.
    */
   async connect(options: { acceptAllDevices?: boolean } = {}): Promise<DeviceIdentity> {
-    const environment = bluetoothEnvironment();
-    if (!environment.available) {
+    const transport = selectTransport();
+    if (!transport) {
+      const environment = bluetoothEnvironment();
       throw new WatchError(
         "indisponible",
         [environment.message, environment.remedy].filter(Boolean).join(" "),
@@ -280,42 +261,32 @@ export class Fit100SConnection {
     this.manualDisconnect = false;
     this.setStatus("recherche");
 
-    const optionalServices = [
-      GATT.heartRate,
-      GATT.runningSpeedCadence,
-      GATT.battery,
-      GATT.deviceInformation,
-    ];
-
-    let device: BluetoothDevice;
     try {
-      device = await navigator.bluetooth.requestDevice(
-        options.acceptAllDevices
-          ? { acceptAllDevices: true, optionalServices }
-          : {
-              filters: [
-                ...DECATHLON_NAME_PREFIXES.map((namePrefix) => ({ namePrefix })),
-                { services: [GATT.heartRate] },
-                { services: [GATT.runningSpeedCadence] },
-              ],
-              optionalServices,
-            },
-      );
+      this.device = await transport.requestDevice({
+        services: [GATT_UUID.heartRate, GATT_UUID.runningSpeedCadence],
+        optionalServices: [
+          GATT_UUID.heartRate,
+          GATT_UUID.runningSpeedCadence,
+          GATT_UUID.battery,
+          GATT_UUID.deviceInformation,
+        ],
+        namePrefixes: DECATHLON_NAME_PREFIXES,
+        acceptAll: options.acceptAllDevices ?? false,
+      });
     } catch (error) {
       this.setStatus("deconnecte");
-      throw classifyRequestError(error, options.acceptAllDevices ?? false);
+      throw toWatchError(error);
     }
 
-    this.device = device;
-    device.addEventListener("gattserverdisconnected", this.handleDisconnection);
+    this.device.onDisconnected(() => this.handleDisconnection());
 
     try {
-      await this.openGatt();
+      await this.openLink();
     } catch (error) {
       this.setStatus("erreur");
       throw new WatchError(
         "connexion",
-        `La montre a ete trouvee mais la connexion a echoue (${(error as Error).message}). Verifie qu'aucune autre application, Decathlon Coach en particulier, n'est deja connectee a la montre.`,
+        `La montre a ete trouvee mais la connexion a echoue (${(error as Error).message}). Verifie qu'aucune autre application, Decathlon Hub en particulier, n'est deja connectee a la montre.`,
       );
     }
 
@@ -326,73 +297,45 @@ export class Fit100SConnection {
     return identity;
   }
 
-  /** Etablit la liaison GATT et s'abonne aux notifications disponibles. */
-  private async openGatt(): Promise<void> {
-    if (!this.device?.gatt) throw new Error("appareil Bluetooth indisponible");
+  /** Etablit la liaison et s'abonne aux notifications disponibles. */
+  private async openLink(): Promise<void> {
+    if (!this.device) throw new Error("aucun appareil selectionne");
     this.setStatus("connexion");
 
-    this.server = await this.device.gatt.connect();
+    await this.device.connect();
     this.reconnectAttempts = 0;
 
     // Chaque profil est optionnel : une montre sans capteur de cadence reste
     // parfaitement utilisable pour le cardio.
     this.profiles = {
-      heartRate: await this.subscribeHeartRate(),
-      cadence: await this.subscribeRunningCadence(),
-      battery: await this.subscribeBattery(),
+      heartRate: await this.device.subscribe(
+        GATT_UUID.heartRate,
+        GATT_UUID.heartRateMeasurement,
+        (value) => this.emit(parseHeartRateMeasurement(value)),
+      ),
+      cadence: await this.device.subscribe(
+        GATT_UUID.runningSpeedCadence,
+        GATT_UUID.rscMeasurement,
+        (value) => this.emit(parseRscMeasurement(value)),
+      ),
+      battery: await this.readBattery(),
       deviceInformation: false,
     };
 
     this.setStatus("connecte");
   }
 
-  private async subscribeHeartRate(): Promise<boolean> {
-    const characteristic = await this.characteristic(
-      GATT.heartRate,
-      GATT.heartRateMeasurement,
-    );
-    if (!characteristic) return false;
+  private async readBattery(): Promise<boolean> {
+    if (!this.device) return false;
 
-    await characteristic.startNotifications();
-    characteristic.addEventListener("characteristicvaluechanged", (event) => {
-      const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
-      if (value) this.emit(parseHeartRateMeasurement(value));
-    });
-    return true;
-  }
-
-  private async subscribeRunningCadence(): Promise<boolean> {
-    const characteristic = await this.characteristic(
-      GATT.runningSpeedCadence,
-      GATT.rscMeasurement,
-    );
-    if (!characteristic) return false;
-
-    await characteristic.startNotifications();
-    characteristic.addEventListener("characteristicvaluechanged", (event) => {
-      const value = (event.target as BluetoothRemoteGATTCharacteristic).value;
-      if (value) this.emit(parseRscMeasurement(value));
-    });
-    return true;
-  }
-
-  private async subscribeBattery(): Promise<boolean> {
-    const characteristic = await this.characteristic(GATT.battery, GATT.batteryLevel);
-    if (!characteristic) return false;
-
-    const value = await characteristic.readValue();
+    const value = await this.device.read(GATT_UUID.battery, GATT_UUID.batteryLevel);
+    if (!value) return false;
     this.emit(parseBatteryLevel(value));
 
-    // Toutes les montres ne notifient pas la batterie : on ignore l'echec.
-    try {
-      await characteristic.startNotifications();
-      characteristic.addEventListener("characteristicvaluechanged", (event) => {
-        const updated = (event.target as BluetoothRemoteGATTCharacteristic).value;
-        if (updated) this.emit(parseBatteryLevel(updated));
-      });
-    } catch {
-      // Lecture ponctuelle uniquement.
-    }
+    // Toutes les montres ne notifient pas la batterie : l'echec est sans effet.
+    await this.device.subscribe(GATT_UUID.battery, GATT_UUID.batteryLevel, (updated) =>
+      this.emit(parseBatteryLevel(updated)),
+    );
     return true;
   }
 
@@ -404,37 +347,18 @@ export class Fit100SConnection {
     };
 
     const read = async (uuid: string): Promise<string | undefined> => {
-      const characteristic = await this.characteristic(GATT.deviceInformation, uuid);
-      if (!characteristic) return undefined;
-      try {
-        const value = await characteristic.readValue();
-        return new TextDecoder().decode(value).replace(/\0+$/, "").trim() || undefined;
-      } catch {
-        return undefined;
-      }
+      const value = await this.device?.read(GATT_UUID.deviceInformation, uuid);
+      if (!value) return undefined;
+      return new TextDecoder().decode(value).replace(/\0+$/, "").trim() || undefined;
     };
 
-    identity.model = await read(GATT.modelNumber);
-    identity.firmware = await read(GATT.firmwareRevision);
-    identity.serial = await read(GATT.serialNumber);
+    identity.model = await read(GATT_UUID.modelNumber);
+    identity.firmware = await read(GATT_UUID.firmwareRevision);
+    identity.serial = await read(GATT_UUID.serialNumber);
     this.profiles.deviceInformation = Boolean(
       identity.model || identity.firmware || identity.serial,
     );
     return identity;
-  }
-
-  private async characteristic(
-    service: string,
-    characteristic: string,
-  ): Promise<BluetoothRemoteGATTCharacteristic | null> {
-    if (!this.server) return null;
-    try {
-      const gattService = await this.server.getPrimaryService(service);
-      return await gattService.getCharacteristic(characteristic);
-    } catch {
-      // Service ou caracteristique absent de cette montre : cas normal.
-      return null;
-    }
   }
 
   /** Fusionne une mesure partielle avec l'etat courant et la diffuse. */
@@ -469,7 +393,7 @@ export class Fit100SConnection {
 
     this.reconnectTimer = setTimeout(async () => {
       try {
-        await this.openGatt();
+        await this.openLink();
       } catch {
         this.scheduleReconnect();
       }
@@ -479,52 +403,24 @@ export class Fit100SConnection {
   disconnect(): void {
     this.manualDisconnect = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    this.device?.removeEventListener("gattserverdisconnected", this.handleDisconnection);
-    if (this.device?.gatt?.connected) this.device.gatt.disconnect();
+    void this.device?.disconnect();
     this.device = null;
-    this.server = null;
     this.identity = null;
     this.latest = { timestamp: 0 };
-    this.profiles = {
-      heartRate: false,
-      cadence: false,
-      battery: false,
-      deviceInformation: false,
-    };
+    this.profiles = emptyProfiles();
     this.setStatus("deconnecte");
   }
 }
 
-/**
- * Traduit l'erreur du selecteur en cause exploitable. Le navigateur leve la
- * meme `NotFoundError` que l'utilisateur ait ferme la fenetre ou qu'aucun
- * appareil ne soit apparu : le texte du message permet de trancher.
- */
-function classifyRequestError(error: unknown, acceptedAll: boolean): WatchError {
-  const message = (error as Error)?.message ?? "";
+function emptyProfiles(): DeviceProfiles {
+  return { heartRate: false, cadence: false, battery: false, deviceInformation: false };
+}
 
-  if (/cancel|annul/i.test(message)) {
-    return new WatchError("annule", "Recherche annulee.");
+function toWatchError(error: unknown): WatchError {
+  if (error instanceof TransportError) {
+    return new WatchError(error.failure, error.message);
   }
-  if (/User denied|permission/i.test(message)) {
-    return new WatchError(
-      "annule",
-      "Acces au Bluetooth refuse. Autorise-le dans les reglages du navigateur.",
-    );
-  }
-  if (/globally disabled|turned off|adapter/i.test(message)) {
-    return new WatchError(
-      "indisponible",
-      "Le Bluetooth de l'appareil est eteint. Active-le puis reessaie.",
-    );
-  }
-
-  return new WatchError(
-    "introuvable",
-    acceptedAll
-      ? "Aucun appareil Bluetooth detecte. Reveille la montre, rapproche-la, et verifie qu'elle n'est pas deja connectee a l'application Decathlon Coach."
-      : "Montre introuvable avec les filtres habituels. Essaie la recherche elargie, qui affiche tous les appareils Bluetooth des environs.",
-  );
+  return new WatchError("connexion", (error as Error)?.message ?? "Connexion impossible.");
 }
 
 /**
@@ -555,11 +451,9 @@ export interface VendorSyncCodec {
   /** Nom lisible du protocole, affiche dans les reglages. */
   label: string;
   /** Liste les seances stockees dans la montre. */
-  listActivities(
-    server: BluetoothRemoteGATTServer,
-  ): Promise<Array<{ id: string; startTime: number }>>;
+  listActivities(device: BleDevice): Promise<Array<{ id: string; startTime: number }>>;
   /** Telecharge une seance sous forme de fichier FIT, GPX ou TCX. */
-  download(server: BluetoothRemoteGATTServer, id: string): Promise<Uint8Array>;
+  download(device: BleDevice, id: string): Promise<Uint8Array>;
 }
 
 const vendorCodecs: VendorSyncCodec[] = [];

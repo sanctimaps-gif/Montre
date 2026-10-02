@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, HashRouter } from "react-router-dom";
 import { App } from "./App.tsx";
 import { STANDALONE } from "./api.ts";
+import { isNativeApp } from "./device/ble/index.ts";
 import "./styles.css";
 
 const container = document.getElementById("root");
@@ -24,11 +25,11 @@ createRoot(container).render(
 );
 
 /**
- * Le service worker n'a de sens que pour la version autonome, installable et
- * utilisable hors ligne. En developpement, il masquerait les modifications
- * derriere son cache.
+ * Le service worker n'a de sens que pour la version autonome servie sur le
+ * web : en developpement il masquerait les modifications derriere son cache,
+ * et dans l'application installee les fichiers sont deja dans le paquet.
  */
-if (STANDALONE && "serviceWorker" in navigator) {
+if (STANDALONE && !isNativeApp() && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     // Le chemin est relatif : l'application peut vivre dans un sous-dossier.
     navigator.serviceWorker.register("./sw.js").catch(() => {

@@ -1,5 +1,7 @@
 node_modules/
 dist/
+dist-site/
+dist-app/
 build/
 *.log
 .env
@@ -11,3 +13,8 @@ data/
 .DS_Store
 .vite/
 coverage/
+
+# Projets natifs generes par Capacitor : ils se recreent avec
+# « npm run app:ios » ou « npm run app:android ».
+apps/web/ios/
+apps/web/android/

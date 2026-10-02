@@ -62,11 +62,31 @@ Depuis Decathlon Hub ou Decathlon Coach, exporte la séance en `.fit`, `.gpx` ou
 dépose-la dans l'onglet Activités. Mêmes analyses, sans serveur ni Bluetooth, sur n'importe
 quel appareil.
 
-### Direct — Bluetooth
+### Direct — Bluetooth, depuis l'application elle-même
 
-Sur Chrome, Edge ou Opera (ordinateur et Android), l'application se connecte elle-même à la
-montre et affiche la fréquence cardiaque en direct pendant la séance. Détails et dépannage
-dans [`docs/FIT100S.md`](docs/FIT100S.md).
+L'application se connecte directement à la montre par deux chemins, choisis automatiquement :
+
+- **dans un navigateur** — Chrome, Edge ou Opera, sur ordinateur et Android — via Web
+  Bluetooth ;
+- **dans l'application installée sur le téléphone**, via le Bluetooth natif du système.
+  C'est la seule voie possible sur iPhone, où aucun navigateur n'expose le Bluetooth aux
+  pages web.
+
+```bash
+npm run app:ios        # nécessite un Mac et Xcode
+npm run app:android    # nécessite Android Studio
+```
+
+Le script construit l'application, crée le projet natif, **déclare les autorisations
+Bluetooth** (sans texte d'explication, iOS ferme l'application au moment où elle en a besoin)
+puis synchronise. Il ne reste qu'à ouvrir le projet et appuyer sur Run :
+
+```bash
+cd apps/web && npx cap open ios      # ou: npx cap open android
+```
+
+C'est le même code que le site — même interface, même moteur de calcul — simplement empaqueté.
+Détails et dépannage dans [`docs/FIT100S.md`](docs/FIT100S.md).
 
 ## Démarrage
 

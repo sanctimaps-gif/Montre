@@ -8,6 +8,31 @@
  * erreur de decalage d'un octet et la frequence cardiaque affichee est fausse.
  */
 
+/**
+ * Developpe un identifiant court du Bluetooth SIG en UUID complet.
+ *
+ * Le navigateur accepte les noms courts (« heart_rate »), mais les couches
+ * natives d'iOS et d'Android exigent la forme longue. On s'aligne donc sur la
+ * forme longue partout, la seule que toutes les plateformes comprennent.
+ */
+export function uuid16(short: number): string {
+  return `0000${short.toString(16).padStart(4, "0")}-0000-1000-8000-00805f9b34fb`;
+}
+
+/** Services et caracteristiques standards utilises par les montres de sport. */
+export const GATT_UUID = {
+  heartRate: uuid16(0x180d),
+  heartRateMeasurement: uuid16(0x2a37),
+  runningSpeedCadence: uuid16(0x1814),
+  rscMeasurement: uuid16(0x2a53),
+  battery: uuid16(0x180f),
+  batteryLevel: uuid16(0x2a19),
+  deviceInformation: uuid16(0x180a),
+  modelNumber: uuid16(0x2a24),
+  serialNumber: uuid16(0x2a25),
+  firmwareRevision: uuid16(0x2a26),
+} as const;
+
 /** Mesure instantanee, agregee depuis les differents profils Bluetooth. */
 export interface LiveSample {
   timestamp: number;

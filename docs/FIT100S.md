@@ -97,6 +97,48 @@ essai (1 s, 2 s, 4 s… plafonnée à 30 s), jusqu'à dix tentatives. L'enregist
 pendant ce temps : le chrono et le GPS ne dépendent pas de la montre, seules les valeurs
 cardiaques manquent sur la portion concernée.
 
+## Les deux liaisons Bluetooth
+
+Le code de connexion est écrit une seule fois, contre une interface
+(`apps/web/src/device/ble/transport.ts`) qui décrit ce qu'on veut lire — pas comment la radio
+est atteinte. Deux implémentations la remplissent :
+
+| Liaison | Quand | Comment |
+| --- | --- | --- |
+| `WebBluetoothTransport` | navigateur | Web Bluetooth |
+| `NativeBluetoothTransport` | application installée | Bluetooth du système, via Capacitor |
+
+`selectTransport()` choisit la native quand elle existe, sinon celle du navigateur. Tout le
+reste — découverte, abonnement aux profils, reconnexion automatique, décodage des trames —
+ignore laquelle est utilisée.
+
+Conséquence directe : **sur iPhone, l'application installée se connecte à la montre**, là où
+la même page dans Safari ne le peut pas. Ce n'est pas un contournement, c'est la règle du
+système : les pages web n'ont pas accès au Bluetooth sur iOS, les applications si.
+
+Les identifiants de services sont écrits en UUID complets (`uuid16()` dans
+`packages/core/src/ble.ts`). Le navigateur accepte les noms courts comme `heart_rate`, mais
+les couches natives d'iOS et d'Android exigent la forme longue : s'aligner sur la seule forme
+que tout le monde comprend évite une classe entière de bugs.
+
+### Construire l'application
+
+```bash
+npm run app:ios        # Mac + Xcode
+npm run app:android    # Android Studio
+```
+
+Le script `scripts/build-app.mjs` construit le front en mode autonome — l'application
+embarquée n'a pas de serveur —, crée le projet natif s'il manque, **déclare les
+autorisations** puis synchronise. Les autorisations sont posées par le script et non laissées
+à l'utilisateur, parce que leur absence produit des échecs trompeurs : sans
+`NSBluetoothAlwaysUsageDescription`, iOS ferme l'application à la première demande de
+Bluetooth, sans message exploitable. Côté Android, `BLUETOOTH_SCAN` est déclaré avec
+`neverForLocation`, ce qui évite de réclamer la position pour scanner.
+
+Les dossiers `ios/` et `android/` ne sont pas versionnés : ils se régénèrent avec ces mêmes
+commandes.
+
 ## Compatibilité des navigateurs
 
 | Plateforme | Web Bluetooth |
@@ -115,8 +157,10 @@ n'implémente pas Web Bluetooth. Changer Safari pour Chrome ou Firefox ne change
 ce sont les mêmes entrailles. **Aucun code côté application ne peut contourner cela** — une
 page web n'accède pas à la radio Bluetooth sans passer par du natif.
 
-L'écran `/montre` détecte iOS et propose quatre chemins, classés par simplicité plutôt que
-par élégance technique :
+L'écran `/montre` détecte iOS et propose les chemins classés par simplicité plutôt que par
+élégance technique. Le premier est l'application installée (voir plus haut) : c'est le seul
+qui donne la connexion directe à la montre depuis l'application elle-même. Viennent ensuite,
+pour qui n'a pas de Mac :
 
 1. **Decathlon Hub, puis Strava.** La chaîne officielle, et la seule automatique sur iPhone.
    [Decathlon Hub](https://support.decathlon.fr/decathlon-hub) est l'application de Decathlon

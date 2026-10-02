@@ -1,10 +1,29 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  GATT_UUID,
   parseBatteryLevel,
   parseHeartRateMeasurement,
   parseRscMeasurement,
+  uuid16,
 } from "../src/ble.ts";
+
+test("les identifiants courts se developpent en UUID complets", () => {
+  // Forme exigee par les couches natives d'iOS et d'Android.
+  assert.equal(uuid16(0x180d), "0000180d-0000-1000-8000-00805f9b34fb");
+  // Le remplissage a quatre chiffres compte : 0x2a37 et 0x0a37 different.
+  assert.equal(uuid16(0x2a37), "00002a37-0000-1000-8000-00805f9b34fb");
+  assert.equal(uuid16(0x9), "00000009-0000-1000-8000-00805f9b34fb");
+
+  assert.equal(GATT_UUID.heartRate, uuid16(0x180d));
+  assert.equal(GATT_UUID.rscMeasurement, uuid16(0x2a53));
+  // Tous les identifiants doivent etre distincts et bien formes.
+  const valeurs = Object.values(GATT_UUID);
+  assert.equal(new Set(valeurs).size, valeurs.length);
+  for (const valeur of valeurs) {
+    assert.match(valeur, /^[0-9a-f]{8}-0000-1000-8000-00805f9b34fb$/);
+  }
+});
 
 /** Construit une trame a partir d'une liste d'octets. */
 function frame(...bytes: number[]): DataView {

@@ -14,6 +14,8 @@
   "scripts": {
     "build": "npm run build -w @montre/core && npm run build -w @montre/server && npm run build -w @montre/web",
     "build:site": "node scripts/build-site.mjs",
+    "app:ios": "node scripts/build-app.mjs ios",
+    "app:android": "node scripts/build-app.mjs android",
     "start": "npm run build -w @montre/core && npm run build -w @montre/web && npm run start -w @montre/server",
     "dev": "node scripts/dev.mjs",
     "dev:server": "npm run dev -w @montre/server",

@@ -15,7 +15,8 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const distDir = resolve(root, "apps/web/dist");
+/** Sortie propre au site, pour ne pas ecraser la version servie par le serveur. */
+const distDir = resolve(root, "apps/web/dist-site");
 const siteAssets = resolve(root, "assets");
 
 function run(command, args, env = {}) {
@@ -39,6 +40,7 @@ console.log("2/3  Construction de l'application en mode autonome");
 run("npm", ["run", "build", "-w", "@montre/web"], {
   VITE_STANDALONE: "1",
   VITE_BASE: "./",
+  VITE_OUT_DIR: "dist-site",
 });
 
 console.log("3/3  Publication a la racine du depot");

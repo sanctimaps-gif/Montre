@@ -71,9 +71,15 @@ centaine de lignes.
 
 React et Vite, trois dépendances de production (`react`, `react-dom`, `react-router-dom`).
 
-- `device/fit100s.ts` — Web Bluetooth : diagnostic de plateforme, découverte (filtrée puis
-  élargie), abonnement aux profils standards, reconnexion automatique. Le décodage des trames
-  est dans `core/ble.ts` pour être testable. Détaillé dans [`FIT100S.md`](FIT100S.md).
+- `device/ble/` — la liaison Bluetooth derrière une interface : `web-transport.ts` pour Web
+  Bluetooth, `native-transport.ts` pour le Bluetooth du système quand l'application tourne
+  installée sur le téléphone. C'est ce qui permet la connexion directe à la montre sur
+  iPhone, où les pages web n'ont pas accès au Bluetooth. Le greffon natif est chargé à la
+  demande : un navigateur ne télécharge jamais ce code.
+- `device/fit100s.ts` — diagnostic de plateforme, découverte (filtrée puis élargie),
+  abonnement aux profils standards, reconnexion automatique. Écrit contre l'interface
+  ci-dessus, il ignore quelle liaison le porte. Le décodage des trames est dans `core/ble.ts`
+  pour être testable. Détaillé dans [`FIT100S.md`](FIT100S.md).
 - `pages/Watch.tsx` — appairage guidé : vérifications préalables, recherche, test en direct
   et dépannage. La connexion Bluetooth est une instance partagée de l'application, pas une
   instance par écran : la montre reste connectée quand on change de page.

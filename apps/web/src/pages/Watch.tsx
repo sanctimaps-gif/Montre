@@ -147,10 +147,48 @@ export function Watch() {
             )}
           </div>
 
-          <HubOption numero={1} />
+          {environment.kind === "ios" && (
+            <Option
+              numero={1}
+              accent
+              titre="Installer Montre sur ton iPhone"
+              resume="La connexion directe a la montre, depuis l'application elle-meme"
+            >
+              <p>
+                Une application installee accede au Bluetooth comme n'importe quelle
+                application du telephone — Decathlon Hub comprise. C'est exactement la meme
+                application que cette page, empaquetee pour iOS : meme interface, memes
+                calculs, et en plus la connexion directe a ta montre.
+              </p>
+              <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
+                <li>
+                  Sur un Mac, recupere le depot et lance{" "}
+                  <code>npm install</code> puis <code>npm run app:ios</code>. Le script
+                  construit l'application, cree le projet et declare les autorisations
+                  Bluetooth.
+                </li>
+                <li>
+                  Ouvre le projet dans Xcode (<code>npx cap open ios</code> depuis{" "}
+                  <code>apps/web</code>), choisis ton iPhone comme cible, puis Run.
+                </li>
+                <li>
+                  L'application apparait sur ton ecran d'accueil. Reviens sur cet ecran :
+                  le bouton « Rechercher ma montre » s'y connecte directement.
+                </li>
+              </ol>
+              <p className="aide">
+                Un Mac est necessaire, c'est Apple qui l'impose pour construire une
+                application iOS. Sur Android, <code>npm run app:android</code> suffit avec
+                Android Studio, sans Mac ni compte developpeur. Si tu n'as ni l'un ni
+                l'autre, les options suivantes te donnent les memes analyses.
+              </p>
+            </Option>
+          )}
+
+          <HubOption numero={environment.kind === "ios" ? 2 : 1} />
 
           <Option
-            numero={2}
+            numero={environment.kind === "ios" ? 3 : 2}
             titre="Exporter une seance depuis Decathlon Hub"
             resume="Sans rien installer d'autre, et sans serveur"
           >
@@ -189,7 +227,7 @@ export function Watch() {
           </Option>
 
           <Option
-            numero={3}
+            numero={environment.kind === "ios" ? 4 : 3}
             titre="Sur un ordinateur ou un telephone Android"
             resume="Le direct, sans rien installer"
           >
@@ -206,27 +244,21 @@ export function Watch() {
           </Option>
 
           {environment.kind === "ios" && (
-            <Option
-              numero={4}
-              titre="Bluefy, pour le direct sur iPhone"
-              resume="Un navigateur tiers a installer"
-            >
-              <p>
-                <strong>Bluefy – Web BLE Browser</strong>, sur l'App Store, implemente Web
-                Bluetooth par-dessus le Bluetooth d'iOS — ce que Safari ne fait pas. Copie
-                l'adresse de cette page, ouvre-la dans Bluefy, et la recherche de montre
-                fonctionne comme sur un ordinateur.
+            <div className="carte">
+              <h3>Sans ordinateur : Bluefy</h3>
+              <p className="aide">
+                <strong>Bluefy – Web BLE Browser</strong>, sur l'App Store, est un navigateur
+                qui implemente Web Bluetooth par-dessus le Bluetooth d'iOS. Ouvre cette page
+                dedans et la recherche de montre fonctionne, sans rien construire. C'est un
+                depannage plutot qu'une solution : l'application installee (option 1) donne
+                la meme chose en mieux integre.
               </p>
               <div className="actions">
                 <button onClick={copyLink}>
                   {copied ? "Adresse copiee" : "Copier l'adresse de la page"}
                 </button>
               </div>
-              <p className="aide">
-                C'est la seule facon d'avoir le cardio a l'ecran pendant l'effort sur un
-                iPhone. Pour tout le reste, les options 1 et 2 suffisent.
-              </p>
-            </Option>
+            </div>
           )}
 
           <div className="carte">
@@ -246,6 +278,11 @@ export function Watch() {
         <>
           <div className="carte accent">
             <h2>Avant de lancer la recherche</h2>
+            {environment.kind === "natif" && (
+              <p className="sous-titre">
+                Application installee : elle accede directement au Bluetooth du telephone.
+              </p>
+            )}
             <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
               <li>
                 <strong>Reveille la montre</strong> et demarre une activite dessus. Beaucoup
