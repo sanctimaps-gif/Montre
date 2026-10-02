@@ -72,18 +72,32 @@ L'application se connecte directement à la montre par deux chemins, choisis aut
   C'est la seule voie possible sur iPhone, où aucun navigateur n'expose le Bluetooth aux
   pages web.
 
+**Sans rien installer :** l'application est compilée par
+[GitHub Actions](https://github.com/sanctimaps-gif/Montre/actions) à chaque modification —
+sur un Mac fourni par GitHub pour iOS, sur Linux pour Android. Télécharge le résultat dans
+l'onglet Actions :
+
+| Plateforme | Artefact | Installation |
+| --- | --- | --- |
+| iOS | `Montre-iOS-non-signee` (`.ipa`) | AltStore ou Sideloadly, depuis un PC Windows ou Mac |
+| Android | `Montre-Android` (`.apk`) | directement sur le téléphone |
+
+Le paquet iOS n'est pas signé : la signature appartient à un compte Apple et se fait au
+moment de l'installation, avec un identifiant Apple personnel. Gratuit, elle vaut sept jours
+et se renouvelle d'un clic ; avec un compte développeur payant, elle vaut un an et TestFlight
+permet d'installer sans ordinateur.
+
+**Pour construire soi-même :**
+
 ```bash
 npm run app:ios        # nécessite un Mac et Xcode
 npm run app:android    # nécessite Android Studio
+cd apps/web && npx cap open ios   # ou: npx cap open android
 ```
 
 Le script construit l'application, crée le projet natif, **déclare les autorisations
 Bluetooth** (sans texte d'explication, iOS ferme l'application au moment où elle en a besoin)
-puis synchronise. Il ne reste qu'à ouvrir le projet et appuyer sur Run :
-
-```bash
-cd apps/web && npx cap open ios      # ou: npx cap open android
-```
+puis synchronise.
 
 C'est le même code que le site — même interface, même moteur de calcul — simplement empaqueté.
 Détails et dépannage dans [`docs/FIT100S.md`](docs/FIT100S.md).

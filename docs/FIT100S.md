@@ -121,7 +121,26 @@ Les identifiants de services sont écrits en UUID complets (`uuid16()` dans
 les couches natives d'iOS et d'Android exigent la forme longue : s'aligner sur la seule forme
 que tout le monde comprend évite une classe entière de bugs.
 
-### Construire l'application
+### Obtenir l'application
+
+Elle est compilée par l'intégration continue à chaque modification
+(`.github/workflows/ios.yml` et `android.yml`), et déposée en téléchargement dans l'onglet
+Actions du dépôt. **Aucun Mac n'est nécessaire** : seule la compilation iOS exige macOS, et
+elle se fait sur un Mac fourni par GitHub — gratuit, le dépôt étant public.
+
+Le `.ipa` produit n'est pas signé. C'est volontaire : la signature appartient à un compte
+Apple, qui n'a pas sa place dans un dépôt public. Elle se fait à l'installation, avec
+AltStore ou Sideloadly, qui tournent sur Windows comme sur Mac. Avec un identifiant Apple
+gratuit la signature vaut sept jours ; avec un compte développeur payant, un an, et
+TestFlight permet alors d'installer sans ordinateur du tout.
+
+Côté Android, l'APK est signé avec la clé de débogage et s'installe tel quel.
+
+Le projet Capacitor ne partage aucun scheme Xcode, et `xcodebuild` refuse `-derivedDataPath`
+sans scheme : la cible est donc compilée directement, avec `CONFIGURATION_BUILD_DIR` pour
+maîtriser l'emplacement du produit.
+
+### Construire soi-même
 
 ```bash
 npm run app:ios        # Mac + Xcode
