@@ -160,27 +160,37 @@ export function Watch() {
                 application que cette page, empaquetee pour iOS : meme interface, memes
                 calculs, et en plus la connexion directe a ta montre.
               </p>
+              <p className="sous-titre">
+                La compilation, elle, exige macOS. Elle se fait donc sur un Mac fourni par
+                GitHub : tu n'as pas besoin d'en posseder un.
+              </p>
               <ol style={{ paddingLeft: 20, lineHeight: 1.9 }}>
                 <li>
-                  Sur un Mac, recupere le depot et lance{" "}
-                  <code>npm install</code> puis <code>npm run app:ios</code>. Le script
-                  construit l'application, cree le projet et declare les autorisations
-                  Bluetooth.
+                  Ouvre l'onglet <strong>Actions</strong> du depot, choisis la derniere
+                  execution d'<strong>Application iOS</strong>, et telecharge l'archive{" "}
+                  <strong>Montre-iOS-non-signee</strong>. Elle contient un fichier{" "}
+                  <code>.ipa</code>.
                 </li>
                 <li>
-                  Ouvre le projet dans Xcode (<code>npx cap open ios</code> depuis{" "}
-                  <code>apps/web</code>), choisis ton iPhone comme cible, puis Run.
+                  Installe-la sur ton iPhone avec <strong>AltStore</strong> ou{" "}
+                  <strong>Sideloadly</strong>, qui la signent avec ton identifiant Apple.
+                  Ces outils tournent sur Windows comme sur Mac — un PC ordinaire suffit.
                 </li>
                 <li>
-                  L'application apparait sur ton ecran d'accueil. Reviens sur cet ecran :
-                  le bouton « Rechercher ma montre » s'y connecte directement.
+                  L'application apparait sur ton ecran d'accueil. Ouvre-la, va sur cet ecran
+                  et appuie sur « Rechercher ma montre » : elle s'y connecte directement.
                 </li>
               </ol>
               <p className="aide">
-                Un Mac est necessaire, c'est Apple qui l'impose pour construire une
-                application iOS. Sur Android, <code>npm run app:android</code> suffit avec
-                Android Studio, sans Mac ni compte developpeur. Si tu n'as ni l'un ni
-                l'autre, les options suivantes te donnent les memes analyses.
+                Ce qu'Apple impose, et que personne ne contourne : une application installee
+                hors App Store doit etre signee. Avec un identifiant Apple gratuit, la
+                signature vaut sept jours et se renouvelle d'un clic depuis le meme outil.
+                Avec un compte developpeur paye, elle vaut un an et l'installation peut se
+                faire par TestFlight, sans ordinateur du tout.
+              </p>
+              <p className="aide">
+                Sur Android, l'APK produit par la meme integration continue s'installe tel
+                quel, sans signature ni outil tiers.
               </p>
             </Option>
           )}

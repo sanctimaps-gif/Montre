@@ -36,6 +36,9 @@ jobs:
       - name: Construire l'application et le projet iOS
         run: npm run app:ios
 
+      # Le projet genere par Capacitor ne partage aucun scheme, et xcodebuild
+      # refuse -derivedDataPath sans scheme. On compile donc la cible
+      # directement, en lui imposant son dossier de sortie.
       - name: Compiler sans signature
         working-directory: apps/web/ios/App
         run: |
@@ -44,7 +47,7 @@ jobs:
             -target App \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath build \
+            CONFIGURATION_BUILD_DIR="$PWD/build" \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
@@ -55,7 +58,7 @@ jobs:
         run: |
           # Un .ipa n'est qu'une archive zip contenant un dossier Payload.
           mkdir -p Payload
-          cp -R build/Build/Products/Release-iphoneos/App.app Payload/App.app
+          cp -R build/App.app Payload/App.app
           zip -qry Montre.ipa Payload
           ls -lh Montre.ipa
 
